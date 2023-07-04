@@ -12,3 +12,6 @@
     - { role: pre_tasks, tags: ['always', 'pre_tasks'] }
     - { role: myrole, tags: ['myrole'] }
     - { role: helloworld, tags: ['helloworld'] }
+    
+    - { role: ddns_updater, tags: ['ddns_updater'] }
+    - { role: restreamer, tags: ['restreamer'] }
