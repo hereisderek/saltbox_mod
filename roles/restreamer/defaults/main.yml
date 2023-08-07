@@ -54,12 +54,17 @@ restreamer_dns_proxy: "{{ dns.proxied }}"
 #                                        if (lookup('vars', restreamer_name + '_traefik_sso_middleware', default=restreamer_traefik_sso_middleware) | length > 0)
 #                                        else traefik_default_middleware }}"
 # restreamer_traefik_middleware_custom: ""
-# restreamer_traefik_middleware: "{{ restreamer_traefik_middleware_default + ','
-#                                   + restreamer_traefik_middleware_custom
-#                                if (not restreamer_traefik_middleware_custom.startswith(',') and restreamer_traefik_middleware_custom | length > 0)
-#                                else restreamer_traefik_middleware_default
-#                                   + restreamer_traefik_middleware_custom }}"
 
+
+restreamer_traefik_middleware_custom: ""
+# restreamer_traefik_middleware: "{{ traefik_default_middleware + ',' + restreamer_traefik_sso_middleware
+#                               if (restreamer_traefik_sso_middleware | length > 0)
+#                               else traefik_default_middleware }}"
+restreamer_traefik_middleware: "{{ restreamer_traefik_middleware_default + ','
+                                  + restreamer_traefik_middleware_custom
+                               if (not restreamer_traefik_middleware_custom.startswith(',') and restreamer_traefik_middleware_custom | length > 0)
+                               else restreamer_traefik_middleware_default
+                                  + restreamer_traefik_middleware_custom }}"
 restreamer_traefik_certresolver: "{{ traefik_default_certresolver }}"
 restreamer_traefik_enabled: true
 restreamer_traefik_api_enabled: true
@@ -78,31 +83,42 @@ restreamer_docker_image_tag: "latest"
 restreamer_docker_image: "datarhei/restreamer:{{ restreamer_docker_image_tag }}"
 
 # Ports
-qbittorrentvpn_docker_ports_56881: "{{ port_lookup_56881.port
-                                    if (port_lookup_56881.port is defined)
-                                       and (port_lookup_56881.port | trim | length > 0)
-                                    else '56881' }}"
-qbittorrentvpn_web_port_lookup: "{{ lookup('vars', qbittorrentvpn_name + '_web_port', default=qbittorrentvpn_web_port) }}"
+restreamer_docker_ports_8080: "8080"  # http ui
+restreamer_docker_ports_8081: "8081"  # https ui
+restreamer_docker_ports_1935: "1935"  # RTMP Port
+restreamer_docker_ports_1936: "1936"  # RTMPS Port
+restreamer_docker_ports_6000_udp: "6000"  # SRT Port (UDP) 
 
-restreamer_docker_ports_1935: "1935"  # RTMP #1
-restreamer_docker_ports_1936: "1936"  # RTMP #2
-restreamer_docker_ports_6000: "6000"  # SRT
+# restreamer_docker_ports_defaults: []
+restreamer_docker_ports_defaults: 
+  - "{{ restreamer_docker_ports_8080 }}:8080"
+  - "{{ restreamer_docker_ports_8081 }}:8081"
+  # - "{{ restreamer_docker_ports_1935 }}:1935"
+  # - "{{ restreamer_docker_ports_1936 }}:1936"
+  # - "{{ restreamer_docker_ports_6000_udp }}:6000/udp"
 
-restreamer_docker_ports_defaults:
+# restreamer_docker_ports_custom: []  
+restreamer_docker_ports_custom:
   - "{{ restreamer_docker_ports_1935 }}:1935"
   - "{{ restreamer_docker_ports_1936 }}:1936"
-  - "{{ restreamer_docker_ports_6000 }}:6000/udp"
-restreamer_docker_ports_custom: []
-restreamer_docker_ports: "{{ restreamer_docker_ports_defaults
-                             + restreamer_docker_ports_custom
-                          if (not reverse_proxy_is_enabled)
-                          else restreamer_docker_ports_custom }}"
+  - "{{ restreamer_docker_ports_6000_udp }}:6000/udp"
+
+# restreamer_docker_ports: "{{ restreamer_docker_ports_defaults
+#                              + restreamer_docker_ports_custom
+#                           if (not reverse_proxy_is_enabled)
+#                           else restreamer_docker_ports_custom }}"
+
+restreamer_docker_ports: "{{ lookup('vars', restreamer_name + '_docker_ports_defaults', default=restreamer_docker_ports_defaults)
+                         + lookup('vars', restreamer_name + '_docker_ports_custom', default=restreamer_docker_ports_custom) }}"
 
 # Envs
 restreamer_docker_envs_default:
   TZ: "{{ tz }}"
   PUID: "{{ uid }}"
   PGID: "{{ gid }}"
+  CORE_API_AUTH_ENABLE: "true"
+  CORE_API_AUTH_USERNAME: "{{ user.name }}"
+  CORE_API_AUTH_PASSWORD: "{{ user.pass }}"
 restreamer_docker_envs_custom: {}
 restreamer_docker_envs: "{{ restreamer_docker_envs_default
                             | combine(restreamer_docker_envs_custom) }}"
@@ -115,9 +131,9 @@ restreamer_docker_commands: "{{ restreamer_docker_commands_default
 
 # Volumes
 restreamer_docker_volumes_default:
-  - "{{ restreamer_paths_location }}/config:/core/config"
+  - "{{ restreamer_paths_location }}/config:/core/config" # Directory for holding the config and operational data.
 restreamer_docker_volumes_custom: 
-  - "{{ restreamer_paths_location }}/data:/core/data"
+  - "{{ restreamer_paths_location }}/data:/core/data" # Directory on disk, exposed on HTTP path “/“.
   
 restreamer_docker_volumes: "{{ restreamer_docker_volumes_default
                                + restreamer_docker_volumes_custom }}"
@@ -136,11 +152,11 @@ restreamer_docker_hosts: "{{ docker_hosts_common
                              | combine(restreamer_docker_hosts_custom) }}"
 
 # Labels
-restreamer_docker_labels_default: 
-  - '{ "traefik.http.routers.{{ restreamer_name }}-http.rule": "Host(`{{ traefik_host }}`) && PathPrefix(`/ui`)" }'
-  - '{ "traefik.http.routers.{{ restreamer_name }}.rule": "Host(`{{ traefik_host }}`) && PathPrefix(`/ui`)" }'
-  - '{ "traefik.http.routers.{{ restreamer_name }}-http.middlewares.stripprefix.prefixes": "/ui" }'
-  - '{ "traefik.http.routers.{{ restreamer_name }}-http.middlewares.stripprefix.forceSlash": "false" }'
+restreamer_docker_labels_default: {}
+  # - '{ "traefik.http.routers.{{ restreamer_name }}-http.rule": "Host(`{{ traefik_host }}`) && PathPrefix(`/ui`)" }'
+  # - '{ "traefik.http.routers.{{ restreamer_name }}.rule": "Host(`{{ traefik_host }}`) && PathPrefix(`/ui`)" }'
+  # - '{ "traefik.http.routers.{{ restreamer_name }}-http.middlewares.stripprefix.prefixes": "/ui" }'
+  # - '{ "traefik.http.routers.{{ restreamer_name }}-http.middlewares.stripprefix.forceSlash": "false" }'
 restreamer_docker_labels_custom: {}
 restreamer_docker_labels: "{{ docker_labels_common
                               | combine(restreamer_docker_labels_default)
