@@ -83,16 +83,16 @@ restreamer_docker_image_tag: "latest"
 restreamer_docker_image: "datarhei/restreamer:{{ restreamer_docker_image_tag }}"
 
 # Ports
-restreamer_docker_ports_8080: "8080"  # http ui
-restreamer_docker_ports_8081: "8081"  # https ui
+# restreamer_docker_ports_8080: "8080"  # http ui
+# restreamer_docker_ports_8081: "8081"  # https ui
 restreamer_docker_ports_1935: "1935"  # RTMP Port
 restreamer_docker_ports_1936: "1936"  # RTMPS Port
 restreamer_docker_ports_6000_udp: "6000"  # SRT Port (UDP) 
 
 # restreamer_docker_ports_defaults: []
-restreamer_docker_ports_defaults: 
-  - "{{ restreamer_docker_ports_8080 }}:8080"
-  - "{{ restreamer_docker_ports_8081 }}:8081"
+restreamer_docker_ports_defaults: []
+  # - "{{ restreamer_docker_ports_8080 }}:8080"
+  # - "{{ restreamer_docker_ports_8081 }}:8081"
   # - "{{ restreamer_docker_ports_1935 }}:1935"
   # - "{{ restreamer_docker_ports_1936 }}:1936"
   # - "{{ restreamer_docker_ports_6000_udp }}:6000/udp"
@@ -119,6 +119,11 @@ restreamer_docker_envs_default:
   CORE_API_AUTH_ENABLE: "true"
   CORE_API_AUTH_USERNAME: "{{ user.name }}"
   CORE_API_AUTH_PASSWORD: "{{ user.pass }}"
+  CORE_HOST_NAME: "{{ restreamer_web_subdomain + '.' + restreamer_web_domain }}"
+  # CORE_ADDRESS: ":80"
+  # CORE_TLS_ADDRESS: ":443"
+  # CORE_TLS_ENABLE: "true"
+
 restreamer_docker_envs_custom: {}
 restreamer_docker_envs: "{{ restreamer_docker_envs_default
                             | combine(restreamer_docker_envs_custom) }}"
