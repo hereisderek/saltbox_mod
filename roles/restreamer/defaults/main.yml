@@ -68,7 +68,7 @@ restreamer_traefik_middleware: "{{ restreamer_traefik_middleware_default + ','
 restreamer_traefik_certresolver: "{{ traefik_default_certresolver }}"
 restreamer_traefik_enabled: true
 restreamer_traefik_api_enabled: true
-restreamer_traefik_api_endpoint: "`/api`,`/ui`"
+restreamer_traefik_api_endpoint: "PathPrefix(`/api`) || PathPrefix(`/ui`)"
 
 ################################
 # Docker
