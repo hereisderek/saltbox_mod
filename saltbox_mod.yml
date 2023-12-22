@@ -16,3 +16,5 @@
     - { role: ddns_updater, tags: ['ddns_updater'] }
     - { role: duplicati, tags: ['duplicati'] }
     - { role: restreamer, tags: ['restreamer'] }
+    - { role: youtubedl_material, tags: ['youtubedl_material'] }
+    
