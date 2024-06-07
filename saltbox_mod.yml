@@ -13,15 +13,12 @@
     - { role: pre_tasks, tags: ['always', 'pre_tasks'] }
     # Apps Start
     - { role: myrole, tags: ['myrole'] }
-    - { role: metube, tags: ['metube'] }
     - { role: helloworld, tags: ['helloworld'] }
     # Apps End
 
-
+    - { role: metube, tags: ['metube'] }
     - { role: ddns_updater, tags: ['ddns_updater'] }
     - { role: duplicati, tags: ['duplicati'] }
     - { role: restreamer, tags: ['restreamer'] }
-    - { role: youtubedl_material, tags: ['youtubedl_material'] }
     - { role: youtubedl, tags: ['youtubedl'] }
     - { role: tubesync, tags: ['tubesync'] }
-    
