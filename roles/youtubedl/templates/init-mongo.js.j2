@@ -1,0 +1,1 @@
+db.getSiblingDB("{{ youtubedl_mongo_dbname }}").createUser({user: "{{ youtubedl_mongo_user }}", pwd: "{{ youtubedl_mongo_pass }}", roles: [{role: "dbOwner", db: "{{ youtubedl_mongo_dbname }}"}, {role: "dbOwner", db: "{{ youtubedl_mongo_dbname }}_stat"}]});

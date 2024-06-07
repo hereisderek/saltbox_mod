@@ -1,0 +1,183 @@
+##########################################################################
+# Title:            YoutubeDL-Material                                   #
+# Author(s):        Hereisderek                                          #
+# URL:              https://github.com/saltyorg/Sandbox                  #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+################################
+# Basics
+################################
+
+youtubedl_name: youtubedl
+
+################################
+# Settings
+################################
+
+youtubedl_mongo_user: "youtubedl"
+youtubedl_mongo_pass: "password4321"
+youtubedl_mongo_port: "27017"
+youtubedl_mongo_dbname: "youtubedl"
+
+################################
+# Paths
+################################
+
+youtubedl_paths_folder: "{{ youtubedl_name }}"
+youtubedl_paths_location: "{{ server_appdata_path }}/{{ youtubedl_paths_folder }}"
+youtubedl_download_folder: "/mnt/unionfs/Media/{{ youtubedl_name }}"
+youtubedl_paths_folders_list:
+  - "{{ youtubedl_paths_location }}"
+  - "{{ youtubedl_paths_location }}/appdata"
+  - "{{ youtubedl_paths_location }}/users"
+  - "{{ youtubedl_download_folder }}"
+  - "{{ youtubedl_download_folder }}/audio"
+  - "{{ youtubedl_download_folder }}/video"
+  - "{{ youtubedl_download_folder }}/subscriptions"
+
+
+################################
+# Web
+################################
+
+youtubedl_web_subdomain: "{{ youtubedl_name }}"
+youtubedl_web_domain: "{{ user.domain }}"
+youtubedl_web_port: "17442"
+youtubedl_web_url: "{{ 'https://' + youtubedl_web_subdomain + '.' + youtubedl_web_domain
+                     if (youtubedl_web_subdomain | length > 0)
+                     else youtubedl_web_domain }}"
+
+################################
+# DNS
+################################
+
+youtubedl_dns_record: "{{ youtubedl_web_subdomain }}"
+youtubedl_dns_zone: "{{ youtubedl_web_domain }}"
+youtubedl_dns_proxy: "{{ dns.proxied }}"
+
+################################
+# Traefik
+################################
+
+# youtubedl_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+# youtubedl_traefik_middleware_default: "{{ traefik_default_middleware }}"
+# youtubedl_traefik_middleware_custom: ""
+# youtubedl_traefik_certresolver: "{{ traefik_default_certresolver }}"
+# youtubedl_traefik_enabled: true
+# youtubedl_traefik_api_enabled: false
+# youtubedl_traefik_api_endpoint: ""
+
+youtubedl_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+youtubedl_traefik_middleware: "{{ traefik_default_middleware + ',' + youtubedl_traefik_sso_middleware
+                                if (youtubedl_traefik_sso_middleware | length > 0)
+                                else traefik_default_middleware }}"
+youtubedl_traefik_certresolver: "{{ traefik_default_certresolver }}"
+youtubedl_traefik_enabled: true
+
+
+################################
+# Docker
+################################
+
+# Container
+youtubedl_docker_container: "{{ youtubedl_name }}"
+
+# Image
+youtubedl_docker_image_pull: true
+youtubedl_docker_image_tag: "latest"
+youtubedl_docker_image: "tzahi12345/youtubedl-material:{{ youtubedl_docker_image_tag }}"
+
+# Ports
+youtubedl_docker_ports_defaults: []
+youtubedl_docker_ports_custom: []
+youtubedl_docker_ports: "{{ youtubedl_docker_ports_defaults
+                             + youtubedl_docker_ports_custom }}"
+
+# Envs
+youtubedl_docker_envs_default:
+  UID: "{{ uid }}"
+  GID: "{{ gid }}"
+  TZ: "{{ tz }}"
+  # NODE_OPTIONS: "--max_old_space_size=2048"
+  # ytdl_use_local_db: 'true'
+  ytdl_use_local_db: 'false'
+  write_ytdl_config: 'true'
+  # ytdl_mongodb_connection_string_rem: "mongodb://{{ youtubedl_mongo_user }}:{{ youtubedl_mongo_pass }}@{{ youtubedl_name }}_mongo:{{ youtubedl_mongo_port }}/{{ youtubedl_mongo_dbname }}?compressors=zlib"
+  # ytdl_mongodb_connection_string: "mongodb://{{ youtubedl_name }}_mongo:{{ youtubedl_mongo_port }}/"
+  ytdl_mongodb_connection_string: "mongodb://youtubedl_mongo:27017/youtubedl?compressors=zlib"
+
+# mongodb://youtubedl_mongo:27017/?compressors=zlib
+# mongodb://youtubedl_mongo:27017/?compressors=disabled&gssapiServiceName=mongodb
+youtubedl_docker_envs_custom: {}
+youtubedl_docker_envs: "{{ youtubedl_docker_envs_default
+                            | combine(youtubedl_docker_envs_custom) }}"
+
+# Commands
+youtubedl_docker_commands_default: []
+youtubedl_docker_commands_custom: []
+youtubedl_docker_commands: "{{ youtubedl_docker_commands_default
+                                + youtubedl_docker_commands_custom }}"
+
+# Volumes
+youtubedl_docker_volumes_default:
+  - /etc/timezone:/etc/timezone:ro
+  - "{{ youtubedl_paths_location }}/appdata:/app/appdata"
+  - "{{ youtubedl_paths_location }}/users:/app/users"
+  - "{{ youtubedl_download_folder }}/audio:/app/audio"
+  - "{{ youtubedl_download_folder }}/video:/app/video"
+  - "{{ youtubedl_download_folder }}/subscriptions:/app/subscriptions"
+youtubedl_docker_volumes_custom: []
+youtubedl_docker_volumes: "{{ youtubedl_docker_volumes_default
+                               + youtubedl_docker_volumes_custom }}"
+
+# Devices
+youtubedl_docker_devices_default: []
+youtubedl_docker_devices_custom: []
+youtubedl_docker_devices: "{{ youtubedl_docker_devices_default
+                               + youtubedl_docker_devices_custom }}"
+
+# Hosts
+youtubedl_docker_hosts_default: []
+youtubedl_docker_hosts_custom: []
+youtubedl_docker_hosts: "{{ docker_hosts_common
+                             | combine(youtubedl_docker_hosts_default)
+                             | combine(youtubedl_docker_hosts_custom) }}"
+
+# Labels
+youtubedl_docker_labels_default: {}
+youtubedl_docker_labels_custom: {}
+youtubedl_docker_labels: "{{ docker_labels_common
+                              | combine(youtubedl_docker_labels_default)
+                              | combine(youtubedl_docker_labels_custom) }}"
+
+# Hostname
+youtubedl_docker_hostname: "{{ youtubedl_name }}"
+
+# Networks
+youtubedl_docker_networks_alias: "{{ youtubedl_name }}"
+youtubedl_docker_networks_default: []
+youtubedl_docker_networks_custom: []
+youtubedl_docker_networks: "{{ docker_networks_common
+                                + youtubedl_docker_networks_default
+                                + youtubedl_docker_networks_custom }}"
+
+# Capabilities
+youtubedl_docker_capabilities_default: []
+youtubedl_docker_capabilities_custom: []
+youtubedl_docker_capabilities: "{{ youtubedl_docker_capabilities_default
+                                    + youtubedl_docker_capabilities_custom }}"
+
+# Security Opts
+youtubedl_docker_security_opts_default: []
+youtubedl_docker_security_opts_custom: []
+youtubedl_docker_security_opts: "{{ youtubedl_docker_security_opts_default
+                                     + youtubedl_docker_security_opts_custom }}"
+
+# Restart Policy
+youtubedl_docker_restart_policy: unless-stopped
+
+# State
+youtubedl_docker_state: started

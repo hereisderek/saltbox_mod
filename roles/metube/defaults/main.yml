@@ -1,0 +1,161 @@
+##########################################################################
+# Title:            metube-Material                                   #
+# Author(s):        Tzahi12345                                           #
+# URL:              https://github.com/Tzahi12345/metube-Material     #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+################################
+# Basics
+################################
+
+metube_name: metube
+
+################################
+# Paths
+################################
+
+metube_paths_folder: "{{ metube_name }}"
+metube_paths_location: "{{ server_appdata_path }}/{{ metube_paths_folder }}"
+metube_download_folder: "/mnt/unionfs/Media/Youtube/{{ metube_name }}"
+metube_paths_folders_list:
+  - "{{ metube_paths_location }}"
+  - "{{ metube_download_folder }}"
+  - "{{ metube_download_folder }}/.state"
+  - "{{ metube_download_folder }}/.temp"
+
+
+################################
+# Web
+################################
+
+metube_web_subdomain: "{{ metube_name }}"
+metube_web_domain: "{{ user.domain }}"
+metube_web_port: "8081"
+metube_web_url: "{{ 'https://' + metube_web_subdomain + '.' + metube_web_domain
+                     if (metube_web_subdomain | length > 0)
+                     else metube_web_domain }}"
+
+################################
+# DNS
+################################
+
+metube_dns_record: "{{ metube_web_subdomain }}"
+metube_dns_zone: "{{ metube_web_domain }}"
+metube_dns_proxy: "{{ dns.proxied }}"
+
+################################
+# Traefik
+################################
+
+metube_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+metube_traefik_middleware: "{{ traefik_default_middleware + ',' + metube_traefik_sso_middleware
+                                if (metube_traefik_sso_middleware | length > 0)
+                                else traefik_default_middleware }}"
+metube_traefik_certresolver: "{{ traefik_default_certresolver }}"
+metube_traefik_enabled: true
+
+################################
+# Docker
+################################
+
+# Container
+metube_docker_container: "{{ metube_name }}"
+
+# Image
+metube_docker_image_pull: true
+metube_docker_image_tag: "latest"
+metube_docker_image: "ghcr.io/alexta69/metube:{{ metube_docker_image_tag }}"
+
+# Ports
+metube_docker_ports_defaults: []
+metube_docker_ports_custom: []
+metube_docker_ports: "{{ metube_docker_ports_defaults
+                             + metube_docker_ports_custom }}"
+
+# Envs
+metube_ytdl_options: >
+  '{"writesubtitles":true,"subtitleslangs":["en","-live_chat"],"updatetime":false,"postprocessors":[{"key":"Exec","exec_cmd":"chmod 0664","when":"after_move"},{"key":"FFmpegEmbedSubtitle","already_have_subtitle":false},{"key":"FFmpegMetadata","add_chapters":true}]}'
+metube_output_template: '%(playlist_title&Playlist |)S%(playlist_title|)S%(playlist_uploader& by |)S%(playlist_uploader|)S%(playlist_autonumber& - |)S%(playlist_autonumber|)S%(playlist_count& of |)S%(playlist_count|)S%(playlist_autonumber& - |)S%(uploader,creator|UNKNOWN_AUTHOR)S - %(title|UNKNOWN_TITLE)S - %(release_date>%Y-%m-%d,upload_date>%Y-%m-%d|UNKNOWN_DATE)S.%(ext)s'
+metube_docker_envs_default:
+  UID: "{{ uid }}"
+  GID: "{{ gid }}"
+  TZ: "{{ tz }}"
+  # YTDL_OPTIONS: "{{ metube_ytdl_options }}"
+  OUTPUT_TEMPLATE: "{{ metube_output_template }}"
+  DOWNLOAD_DIR: "/metube"
+  STATE_DIR: "/metube/.state"
+  TEMP_DIR: "/metube/.temp"
+
+metube_docker_envs_custom: []
+metube_docker_envs: "{{ metube_docker_envs_default
+                            | combine(metube_docker_envs_custom) }}"
+
+# Commands
+metube_docker_commands_default: []
+metube_docker_commands_custom: []
+metube_docker_commands: "{{ metube_docker_commands_default
+                                + metube_docker_commands_custom }}"
+
+# Volumes
+# metube_docker_volumes_default: []
+metube_docker_volumes_default:
+  # - "{{ metube_paths_location }}/appdata:/app/appdata"
+  - "{{ metube_download_folder }}:/metube"
+metube_docker_volumes_custom: []
+# metube_docker_volumes: "{{ metube_docker_volumes_default
+#                                + metube_docker_volumes_custom }}"
+metube_docker_volumes: "{{ metube_docker_volumes_default
+                               + metube_docker_volumes_custom
+                               + docker_volumes_downloads_common }}"
+
+# Devices
+metube_docker_devices_default: []
+metube_docker_devices_custom: []
+metube_docker_devices: "{{ metube_docker_devices_default
+                               + metube_docker_devices_custom }}"
+
+# Hosts
+metube_docker_hosts_default: []
+metube_docker_hosts_custom: []
+metube_docker_hosts: "{{ docker_hosts_common
+                             | combine(metube_docker_hosts_default)
+                             | combine(metube_docker_hosts_custom) }}"
+
+# Labels
+metube_docker_labels_default: {}
+metube_docker_labels_custom: {}
+metube_docker_labels: "{{ docker_labels_common
+                              | combine(metube_docker_labels_default)
+                              | combine(metube_docker_labels_custom) }}"
+
+# Hostname
+metube_docker_hostname: "{{ metube_name }}"
+
+# Networks
+metube_docker_networks_alias: "{{ metube_name }}"
+metube_docker_networks_default: []
+metube_docker_networks_custom: []
+metube_docker_networks: "{{ docker_networks_common
+                                + metube_docker_networks_default
+                                + metube_docker_networks_custom }}"
+
+# Capabilities
+metube_docker_capabilities_default: []
+metube_docker_capabilities_custom: []
+metube_docker_capabilities: "{{ metube_docker_capabilities_default
+                                    + metube_docker_capabilities_custom }}"
+
+# Security Opts
+metube_docker_security_opts_default: []
+metube_docker_security_opts_custom: []
+metube_docker_security_opts: "{{ metube_docker_security_opts_default
+                                     + metube_docker_security_opts_custom }}"
+
+# Restart Policy
+metube_docker_restart_policy: unless-stopped
+
+# State
+metube_docker_state: started
