@@ -12,6 +12,7 @@
 ################################
 
 tubesync_name: tubesync
+downloads_custom_path: false
 
 ################################
 # Paths
@@ -78,6 +79,8 @@ tubesync_docker_envs_default:
   PUID: "{{ uid }}"
   PGID: "{{ gid }}"
   TZ: "{{ tz }}"
+  # LISTEN_HOST: "0.0.0.0"
+  # LISTEN_HOST: "localhost"
 tubesync_docker_envs_custom: {}
 tubesync_docker_envs: "{{ tubesync_docker_envs_default
                             | combine(tubesync_docker_envs_custom) }}"
@@ -89,14 +92,17 @@ tubesync_docker_commands: "{{ tubesync_docker_commands_default
                                 + tubesync_docker_commands_custom }}"
 
 # Volumes
+tubesync_docker_volumes_download: false
 tubesync_docker_volumes_default:
   - "{{ tubesync_paths_location }}:/config"
   - "{{ tubesync_download_folder }}:/downloads"
   
 tubesync_docker_volumes_custom: []
 tubesync_docker_volumes: "{{ tubesync_docker_volumes_default
-                               + tubesync_docker_volumes_custom
-                               + docker_volumes_downloads_common }}"
+                               + tubesync_docker_volumes_custom }}"
+# tubesync_docker_volumes: "{{ tubesync_docker_volumes_default
+#                                + tubesync_docker_volumes_custom
+#                                + docker_volumes_downloads_common }}"
 
 # Devices
 tubesync_docker_devices_default: []
