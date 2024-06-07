@@ -1,0 +1,148 @@
+##########################################################################
+# Title:            TubeSync: a PVR for YouTube.                         #
+# Author(s):        Derek                                                #
+# URL:              https://github.com/hereisderek/saltbox_mod           #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+################################
+# Basics
+################################
+
+tubesync_name: tubesync
+
+################################
+# Paths
+################################
+
+tubesync_paths_folder: "{{ tubesync_name }}"
+tubesync_paths_location: "{{ server_appdata_path }}/{{ tubesync_paths_folder }}"
+tubesync_download_folder: "/mnt/unionfs/Media/Youtube/{{ tubesync_name }}"
+tubesync_paths_folders_list:
+  - "{{ tubesync_paths_location }}"
+  - "{{ tubesync_download_folder }}"
+
+################################
+# Web
+################################
+
+tubesync_web_subdomain: "{{ tubesync_name }}"
+tubesync_web_domain: "{{ user.domain }}"
+tubesync_web_port: "4848"
+tubesync_web_url: "{{ 'https://' + (tubesync_web_subdomain + '.' + tubesync_web_domain
+                     if (tubesync_web_subdomain | length > 0)
+                     else tubesync_web_domain) }}"
+
+################################
+# DNS
+################################
+
+tubesync_dns_record: "{{ tubesync_web_subdomain }}"
+tubesync_dns_zone: "{{ tubesync_web_domain }}"
+tubesync_dns_proxy: "{{ dns.proxied }}"
+
+################################
+# Traefik
+################################
+
+tubesync_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}" # Set to "" if you don't need authelia authentication
+tubesync_traefik_middleware_default: "{{ traefik_default_middleware }}"
+tubesync_traefik_middleware_custom: ""
+tubesync_traefik_certresolver: "{{ traefik_default_certresolver }}"
+tubesync_traefik_enabled: true
+tubesync_traefik_api_enabled: false
+tubesync_traefik_api_endpoint: ""
+
+################################
+# Docker
+################################
+
+# Container
+tubesync_docker_container: "{{ tubesync_name }}"
+
+# Image
+tubesync_docker_image_pull: true
+tubesync_docker_image_tag: "latest"
+tubesync_docker_image: "ghcr.io/meeb/tubesync:{{ tubesync_docker_image_tag }}"
+
+# Ports
+tubesync_docker_ports_defaults: []
+tubesync_docker_ports_custom: []
+tubesync_docker_ports: "{{ tubesync_docker_ports_defaults
+                             + tubesync_docker_ports_custom }}"
+
+# Envs
+tubesync_docker_envs_default:
+  PUID: "{{ uid }}"
+  PGID: "{{ gid }}"
+  TZ: "{{ tz }}"
+tubesync_docker_envs_custom: {}
+tubesync_docker_envs: "{{ tubesync_docker_envs_default
+                            | combine(tubesync_docker_envs_custom) }}"
+
+# Commands
+tubesync_docker_commands_default: []
+tubesync_docker_commands_custom: []
+tubesync_docker_commands: "{{ tubesync_docker_commands_default
+                                + tubesync_docker_commands_custom }}"
+
+# Volumes
+tubesync_docker_volumes_default:
+  - "{{ tubesync_paths_location }}:/config"
+  - "{{ tubesync_download_folder }}:/downloads"
+  
+tubesync_docker_volumes_custom: []
+tubesync_docker_volumes: "{{ tubesync_docker_volumes_default
+                               + tubesync_docker_volumes_custom
+                               + docker_volumes_downloads_common }}"
+
+# Devices
+tubesync_docker_devices_default: []
+tubesync_docker_devices_custom: []
+tubesync_docker_devices: "{{ tubesync_docker_devices_default
+                               + tubesync_docker_devices_custom }}"
+
+# Hosts
+tubesync_docker_hosts_default: []
+tubesync_docker_hosts_custom: []
+tubesync_docker_hosts: "{{ docker_hosts_common
+                             | combine(tubesync_docker_hosts_default)
+                             | combine(tubesync_docker_hosts_custom) }}"
+
+# Labels
+tubesync_docker_labels_default: {}
+tubesync_docker_labels_custom: {}
+tubesync_docker_labels: "{{ docker_labels_common
+                              | combine(tubesync_docker_labels_default)
+                              | combine(tubesync_docker_labels_custom) }}"
+
+# Hostname
+tubesync_docker_hostname: "{{ tubesync_name }}"
+
+# Networks
+tubesync_docker_networks_alias: "{{ tubesync_name }}"
+tubesync_docker_networks_default: []
+tubesync_docker_networks_custom: []
+tubesync_docker_networks: "{{ docker_networks_common
+                                + tubesync_docker_networks_default
+                                + tubesync_docker_networks_custom }}"
+
+# Capabilities
+tubesync_docker_capabilities_default: []
+tubesync_docker_capabilities_custom: []
+tubesync_docker_capabilities: "{{ tubesync_docker_capabilities_default
+                                    + tubesync_docker_capabilities_custom }}"
+
+# Security Opts
+tubesync_docker_security_opts_default: []
+tubesync_docker_security_opts_custom: []
+tubesync_docker_security_opts: "{{ tubesync_docker_security_opts_default
+                                     + tubesync_docker_security_opts_custom }}"
+
+# Restart Policy
+tubesync_docker_restart_policy: unless-stopped
+
+# State
+tubesync_docker_state: started
