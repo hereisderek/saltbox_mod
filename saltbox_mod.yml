@@ -22,3 +22,5 @@
     - { role: restreamer, tags: ['restreamer'] }
     - { role: youtubedl, tags: ['youtubedl'] }
     - { role: tubesync, tags: ['tubesync'] }
+    - { role: socks5_proxy, tags: ['socks5-proxy'] }
+    - { role: ytdl_sub, tags: ['ytdl-sub'] }

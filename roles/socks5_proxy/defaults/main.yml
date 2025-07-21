@@ -1,0 +1,122 @@
+##########################################################################
+# Title:            Sandbox: socks5-proxy for gluetun                    #
+# Author(s):        Derek                                                #
+# URL:              https://github.com/saltyorg/Saltbox_mod              #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+################################
+# Basics
+################################
+
+socks5_proxy_name: "socks5-proxy"
+
+################################
+# Paths
+################################
+
+# socks5_proxy_paths_folder: "{{ socks5_proxy_name }}"
+# socks5_proxy_paths_location: "{{ server_appdata_path }}/{{ socks5_proxy_paths_folder }}"
+# socks5_proxy_paths_folders_list:
+#   - "{{ socks5_proxy_paths_location }}"
+
+socks5_proxy_paths_folder: "{{ socks5_proxy_name }}"
+socks5_proxy_paths_location: []
+socks5_proxy_paths_folders_list: []
+
+################################
+# Docker
+################################
+
+# Container
+socks5_proxy_docker_container: "{{ socks5_proxy_name }}"
+
+# Image
+socks5_proxy_docker_image_pull: true
+socks5_proxy_docker_image_tag: "latest"
+socks5_proxy_docker_image: "serjs/go-socks5-proxy:{{ socks5_proxy_docker_image_tag }}"
+
+# Ports
+# default socks5 port: 1080
+socks5_proxy_docker_ports_defaults: []
+socks5_proxy_docker_ports_custom: []
+socks5_proxy_docker_ports: "{{ socks5_proxy_docker_ports_defaults
+                             + socks5_proxy_docker_ports_custom }}"
+
+# Envs
+socks5_proxy_docker_envs_default:
+  PUID: "{{ uid }}"
+  PGID: "{{ gid }}"
+  TZ: "{{ tz }}"
+socks5_proxy_docker_envs_custom: {}
+socks5_proxy_docker_envs: "{{ socks5_proxy_docker_envs_default
+                            | combine(socks5_proxy_docker_envs_custom) }}"
+
+# Commands
+socks5_proxy_docker_commands_default: []
+socks5_proxy_docker_commands_custom: []
+socks5_proxy_docker_commands: "{{ socks5_proxy_docker_commands_default
+                                + socks5_proxy_docker_commands_custom }}"
+
+# Volumes
+ddns_docker_volumes_global: false
+socks5_proxy_docker_volumes_default: []
+  # - "{{ socks5_proxy_paths_location }}:/config"
+socks5_proxy_docker_volumes_custom: []
+socks5_proxy_docker_volumes: "{{ ddns_docker_volumes_default
+                         + ddns_docker_volumes_custom }}"
+
+# Devices
+socks5_proxy_docker_devices_default: []
+socks5_proxy_docker_devices_custom: []
+socks5_proxy_docker_devices: "{{ socks5_proxy_docker_devices_default
+                               + socks5_proxy_docker_devices_custom }}"
+
+# Hosts
+socks5_proxy_docker_hosts_default: []
+socks5_proxy_docker_hosts_custom: []
+socks5_proxy_docker_hosts: "{{ docker_hosts_common
+                             | combine(socks5_proxy_docker_hosts_default)
+                             | combine(socks5_proxy_docker_hosts_custom) }}"
+
+# Labels
+socks5_proxy_docker_labels_default: {}
+socks5_proxy_docker_labels_custom: {}
+# socks5_proxy_docker_labels_custom: 
+#   PROXY_USER: "{{ proxy_user }}"
+#   PROXY_PASSWORD: "{{ proxy_pass }}"
+
+socks5_proxy_docker_labels: "{{ docker_labels_common
+                              | combine(socks5_proxy_docker_labels_default)
+                              | combine(socks5_proxy_docker_labels_custom) }}"
+
+# Hostname
+socks5_proxy_docker_hostname: "{{ socks5_proxy_name }}"
+
+# Networks
+socks5_proxy_docker_networks_alias: "{{ socks5_proxy_name }}"
+socks5_proxy_docker_networks_default: []
+socks5_proxy_docker_networks_custom: []
+socks5_proxy_docker_networks: "{{ docker_networks_common
+                                + socks5_proxy_docker_networks_default
+                                + socks5_proxy_docker_networks_custom }}"
+
+# Capabilities
+socks5_proxy_docker_capabilities_default: []
+socks5_proxy_docker_capabilities_custom: []
+socks5_proxy_docker_capabilities: "{{ socks5_proxy_docker_capabilities_default
+                                    + socks5_proxy_docker_capabilities_custom }}"
+
+# Security Opts
+socks5_proxy_docker_security_opts_default: []
+socks5_proxy_docker_security_opts_custom: []
+socks5_proxy_docker_security_opts: "{{ socks5_proxy_docker_security_opts_default
+                                     + socks5_proxy_docker_security_opts_custom }}"
+
+# Restart Policy
+socks5_proxy_docker_restart_policy: unless-stopped
+
+# State
+socks5_proxy_docker_state: started
