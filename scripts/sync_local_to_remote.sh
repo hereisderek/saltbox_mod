@@ -36,7 +36,7 @@ rsync -ah --info=stats2,progress2,NAME --stats  /mnt/local/Media/ /mnt/remote/me
 printf "\n" | tee -a "$log_file"
 
 printf "removing old media from local.."| tee -a "$log_file"
-find /mnt/local/Media/ -type f -mmin +90 -exec sh -c "printf \" \n {}\"; rm \"{}\"; " \;| tee -a "$log_file"
+find /mnt/local/Media/ -type f -mmin +90 -exec sh -c "printf \" \n {}\"; rm -rf \"{}\"; " \;| tee -a "$log_file"
 find /mnt/local/Media/ -empty -type d -mmin +90 -delete| tee -a "$log_file"
 printf "\n\n" | tee -a "$log_file"
 
