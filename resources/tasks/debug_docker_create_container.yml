@@ -1,0 +1,52 @@
+
+#########################################################################
+# Title:            Saltbox Mod: Debug Docker Container Creation        #
+# Author(s):        GitHub Copilot                                      #
+# URL:              https://github.com/saltyorg/Saltbox_mod             #
+# --                                                                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+# This task provides comprehensive debugging output for Docker container creation
+# It displays all the variables that would be passed to the docker_container module
+# Useful for troubleshooting container configuration issues
+
+- name: Resources | Tasks | Docker | Create Docker Container | Debug Container Properties
+  ansible.builtin.debug:
+    msg:
+      - "=== Docker Container Debug Info ==="
+      - "Container Name: {{ lookup('vars', _var_prefix + '_docker_container', default=_var_prefix) }}"
+      - "Image: {{ lookup('vars', _var_prefix + '_docker_image') }}"
+      - "Network Mode: {{ lookup('vars', _var_prefix + '_docker_network_mode', default=docker_networks_name_common) }}"
+      - "Networks: {{ lookup('vars', _var_prefix + '_docker_networks', default='N/A') }}"
+      - "Restart Policy: {{ lookup('vars', _var_prefix + '_docker_restart_policy', default='unless-stopped') }}"
+      - "User: {{ lookup('vars', _var_prefix + '_docker_user', default='N/A') }}"
+      - "Working Dir: {{ lookup('vars', _var_prefix + '_docker_working_dir', default='N/A') }}"
+      - "Hostname: {{ lookup('vars', _var_prefix + '_docker_hostname', default='N/A') }}"
+      - "=== Environment Variables ==="
+      - "{{ (nvidia_docker_env if use_nvidia else {}) | combine(lookup('vars', _var_prefix + '_docker_envs', default={})) }}"
+      - "=== Volumes ==="
+      - "{{ ((docker_volumes_common + lookup('vars', _var_prefix + '_docker_volumes', default=[]))
+          if (lookup('vars', _var_prefix + '_docker_volumes_global', default=true) | bool)
+          else lookup('vars', _var_prefix + '_docker_volumes', default=[])) | unique | reject('equalto', omit) | list }}"
+      - "=== Mounts ==="
+      - "{{ lookup('vars', _var_prefix + '_docker_mounts', default='N/A') }}"
+      - "=== Published Ports ==="
+      - "{{ (lookup('vars', _var_prefix + '_docker_ports', default=[]) | unique | reject('equalto', omit) | list)
+          if not ('container:' in lookup('vars', _var_prefix + '_docker_network_mode', default=docker_networks_name_common))
+          else [] }}"
+      - "=== Commands ==="
+      - "{{ lookup('vars', _var_prefix + '_docker_commands', default=[]) | reject('equalto', omit) | list }}"
+      - "=== Labels ==="
+      - "{{ lookup('vars', _var_prefix + '_docker_labels', default='N/A') }}"
+      - "=== Devices ==="
+      - "{{ lookup('vars', _var_prefix + '_docker_devices', default='N/A') }}"
+      - "=== Resource Limits ==="
+      - "Memory: {{ (docker_memory_default is defined) | ternary(docker_memory_default, lookup('vars', _var_prefix + '_docker_memory', default='N/A')) }}"
+      - "CPUs: {{ (docker_cpus_default is defined) | ternary(docker_cpus_default, lookup('vars', _var_prefix + '_docker_cpus', default='N/A')) }}"
+      - "=== Security ==="
+      - "Privileged: {{ lookup('vars', _var_prefix + '_docker_privileged', default='N/A') }}"
+      - "Capabilities: {{ lookup('vars', _var_prefix + '_docker_capabilities', default='N/A') }}"
+      - "Security Opts: {{ lookup('vars', _var_prefix + '_docker_security_opts', default='N/A') }}"
+  when: debug_docker_create_container | default(false)
