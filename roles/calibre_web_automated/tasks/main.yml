@@ -1,0 +1,32 @@
+##########################################################################
+# Title:            Sandbox: template role                               #
+# Author(s):        Grostim                                              #
+# URL:              https://github.com/saltyorg/Saltbox_mod              #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+# - name: Import Calibre Web Role from Saltbox
+#   ansible.builtin.include_role:
+#     name: calibre_web
+    
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('vars', role_name + '_dns_record') }}"
+    dns_zone: "{{ lookup('vars', role_name + '_dns_zone') }}"
+    dns_proxy: "{{ lookup('vars', role_name + '_dns_proxy') }}"
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Create directories
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
+
+- name: Debug Docker container creation 
+  ansible.builtin.include_tasks: "/opt/saltbox_mod/resources/tasks/debug_docker_create_container.yml"
+  when: lookup('file', '/opt/saltbox_mod/resources/tasks/debug_docker_create_container.yml', errors='ignore')
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"

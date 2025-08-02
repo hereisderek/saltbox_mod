@@ -16,6 +16,8 @@
     - { role: helloworld, tags: ['helloworld'] }
     # Apps End
 
+    - { role: calibre_web_automated, tags: ['calibre-web-automated'] }
+    - { role: calibre_web_automated_downloader, tags: ['calibre-web-automated-downloader'] }
     - { role: metube, tags: ['metube'] }
     - { role: ddns_updater, tags: ['ddns_updater'] }
     - { role: duplicati, tags: ['duplicati'] }

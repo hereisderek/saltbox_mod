@@ -1,0 +1,60 @@
+##########################################################################
+# Title:            Sandbox: template role                               #
+# Author(s):        Grostim                                              #
+# URL:              https://github.com/saltyorg/Saltbox_mod              #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+# - name: Import Calibre Web Role from Saltbox
+#   ansible.builtin.include_role:
+#     name: calibre_web
+    
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('vars', role_name + '_dns_record') }}"
+    dns_zone: "{{ lookup('vars', role_name + '_dns_zone') }}"
+    dns_proxy: "{{ lookup('vars', role_name + '_dns_proxy') }}"
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Create directories
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
+
+- name: Debug Docker container creation 
+  ansible.builtin.include_tasks: "/opt/saltbox_mod/resources/tasks/debug_docker_create_container.yml"
+  when: lookup('file', '/opt/saltbox_mod/resources/tasks/debug_docker_create_container.yml', errors='ignore')
+
+- name: Wait for required dependencies to exist
+  block:
+    - name: Check if required files and folders exist
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      register: dependency_checks
+      retries: 3
+      delay: 5
+      until: >
+        dependency_checks.stat.exists and
+        (item.type == 'file' or dependency_checks.stat.isdir)
+      loop:
+        - { path: "{{ calibre_web_automated_downloader_cwa_db_path }}", type: "file", name: "CWA Database file" }
+        - { path: "{{ calibre_web_automated_downloader_ingest_path }}", type: "folder", name: "Ingest folder" }
+      loop_control:
+        label: "{{ item.name }}: {{ item.path }}"
+
+  rescue:
+    - name: Display error message for missing dependencies
+      ansible.builtin.fail:
+        msg: |
+          Required dependencies are missing. Please ensure the Calibre Web Automated service is running and has created these dependencies:
+          {% for result in dependency_checks.results | default([]) %}
+          {% if not result.stat.exists or (result.item.type == 'folder' and not result.stat.isdir) %}
+          - {{ result.item.name }} not found{% if result.item.type == 'folder' %} or not a directory{% endif %}: {{ result.item.path }}
+          {% endif %}
+          {% endfor %}
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"

@@ -1,0 +1,179 @@
+##########################################################################
+# Title:            Sandbox: template role                               #
+# Author(s):        Grostim                                              #
+# URL:              https://github.com/saltyorg/Saltbox_mod              #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+################################
+# Basics
+################################
+
+calibre_web_automated_downloader_name: calibre_web_automated_downloader
+
+
+################################
+# Settings
+################################
+
+calibre_web_automated_downloader_book_language: "en"
+calibre_web_automated_downloader_cwa_db_path: "{{ calibre_web_automated_paths_location }}/config/app.db"
+calibre_web_automated_downloader_ingest_path: "{{ calibre_web_automated_ingest_path }}"
+
+################################
+# Paths
+################################
+
+
+calibre_web_automated_downloader_paths_folder: "{{ calibre_web_automated_downloader_name }}"
+calibre_web_automated_downloader_paths_location: "{{ server_appdata_path }}/{{ calibre_web_automated_downloader_paths_folder }}"
+# calibre_web_automated_downloader_cache_path: "{{ calibre_web_automated_downloader_paths_location }}/cache"
+calibre_web_automated_downloader_paths_folders_list:
+  - "{{ calibre_web_automated_downloader_paths_location }}"
+  - "{{ calibre_web_automated_downloader_ingest_path }}"
+
+################################
+# Web
+################################
+
+# calibre_web_automated_downloader_web_subdomain: "{{ calibre_web_automated_downloader_name }}"
+calibre_web_automated_downloader_web_subdomain: "cwad"
+calibre_web_automated_downloader_web_domain: "{{ user.domain }}"
+calibre_web_automated_downloader_web_port: "8084"
+calibre_web_automated_downloader_web_url: "{{ 'https://' + (calibre_web_automated_downloader_web_subdomain + '.' + calibre_web_automated_downloader_web_domain
+                     if (calibre_web_automated_downloader_web_subdomain | length > 0)
+                     else calibre_web_automated_downloader_web_domain) }}"
+
+################################
+# DNS
+################################
+
+calibre_web_automated_downloader_dns_record: "{{ calibre_web_automated_downloader_web_subdomain }}"
+calibre_web_automated_downloader_dns_zone: "{{ calibre_web_automated_downloader_web_domain }}"
+calibre_web_automated_downloader_dns_proxy: "{{ dns.proxied }}"
+
+################################
+# Traefik
+################################
+
+calibre_web_automated_downloader_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}" # Set to "" if you don't need authelia authentication
+calibre_web_automated_downloader_traefik_middleware_default: "{{ traefik_default_middleware }}"
+calibre_web_automated_downloader_traefik_middleware_custom: ""
+calibre_web_automated_downloader_traefik_certresolver: "{{ traefik_default_certresolver }}"
+calibre_web_automated_downloader_traefik_enabled: true
+calibre_web_automated_downloader_traefik_api_enabled: false
+calibre_web_automated_downloader_traefik_api_endpoint: ""
+
+################################
+# THEME
+################################
+
+# Options can be found at https://github.com/themepark-dev/theme.park
+calibre_web_automated_downloader_themepark_enabled: false
+calibre_web_automated_downloader_themepark_theme: "{{ global_themepark_theme }}"
+calibre_web_automated_downloader_themepark_domain: "{{ global_themepark_domain }}"
+
+################################
+# Docker
+################################
+
+# Container
+calibre_web_automated_downloader_docker_container: "{{ calibre_web_automated_downloader_name }}"
+
+# Image
+calibre_web_automated_downloader_docker_image_pull: true
+calibre_web_automated_downloader_docker_image_tag: "latest"
+calibre_web_automated_downloader_docker_image: "ghcr.io/calibrain/calibre-web-automated-book-downloader:{{ calibre_web_automated_downloader_docker_image_tag }}"
+
+# Ports
+calibre_web_automated_downloader_docker_ports_defaults: []
+calibre_web_automated_downloader_docker_ports_custom: []
+calibre_web_automated_downloader_docker_ports: "{{ calibre_web_automated_downloader_docker_ports_defaults
+                             + calibre_web_automated_downloader_docker_ports_custom }}"
+
+# Envs
+calibre_web_automated_downloader_docker_envs_default:
+  UID: "{{ uid }}"
+  GID: "{{ gid }}"
+  TZ: "{{ tz }}"
+  BOOK_LANGUAGE: "{{ calibre_web_automated_downloader_book_language }}"
+calibre_web_automated_downloader_docker_envs_custom: {}
+calibre_web_automated_downloader_docker_envs: "{{ calibre_web_automated_downloader_docker_envs_default
+                             | combine(calibre_web_automated_downloader_docker_envs_custom)
+                          if not (calibre_web_automated_downloader_themepark_enabled)
+                          else calibre_web_automated_downloader_docker_envs_default
+                             | combine(calibre_web_automated_downloader_docker_envs_custom) }}"
+
+# Commands
+calibre_web_automated_downloader_docker_commands_default: []
+calibre_web_automated_downloader_docker_commands_custom: []
+calibre_web_automated_downloader_docker_commands: "{{ calibre_web_automated_downloader_docker_commands_default
+                                + calibre_web_automated_downloader_docker_commands_custom }}"
+
+# Volumes
+calibre_web_automated_downloader_docker_volumes_default:
+  - "{{ calibre_web_automated_downloader_cwa_db_path }}:/auth/app.db:ro"
+  - "{{ calibre_web_automated_downloader_ingest_path }}:/cwa-book-ingest"
+calibre_web_automated_downloader_docker_volumes_custom: []
+calibre_web_automated_downloader_docker_volumes: "{{ calibre_web_automated_downloader_docker_volumes_default
+                               + calibre_web_automated_downloader_docker_volumes_custom
+                               + docker_volumes_downloads_common }}"
+
+# Devices
+calibre_web_automated_downloader_docker_devices_default: []
+calibre_web_automated_downloader_docker_devices_custom: []
+calibre_web_automated_downloader_docker_devices: "{{ calibre_web_automated_downloader_docker_devices_default
+                               + calibre_web_automated_downloader_docker_devices_custom }}"
+
+# Hosts
+calibre_web_automated_downloader_docker_hosts_default: []
+calibre_web_automated_downloader_docker_hosts_custom: []
+calibre_web_automated_downloader_docker_hosts: "{{ docker_hosts_common
+                             | combine(calibre_web_automated_downloader_docker_hosts_default)
+                             | combine(calibre_web_automated_downloader_docker_hosts_custom) }}"
+
+# Labels
+calibre_web_automated_downloader_docker_labels_default: {}
+calibre_web_automated_downloader_docker_labels_custom: {}
+calibre_web_automated_downloader_docker_labels: "{{ docker_labels_common
+                              | combine(calibre_web_automated_downloader_docker_labels_default)
+                              | combine(calibre_web_automated_downloader_docker_labels_custom) }}"
+
+# Hostname
+calibre_web_automated_downloader_docker_hostname: "{{ calibre_web_automated_downloader_name }}"
+
+# Networks
+calibre_web_automated_downloader_docker_networks_alias: "{{ calibre_web_automated_downloader_name }}"
+calibre_web_automated_downloader_docker_networks_default: []
+calibre_web_automated_downloader_docker_networks_custom: []
+calibre_web_automated_downloader_docker_networks: "{{ docker_networks_common
+                                + calibre_web_automated_downloader_docker_networks_default
+                                + calibre_web_automated_downloader_docker_networks_custom }}"
+
+# Capabilities
+calibre_web_automated_downloader_docker_capabilities_default: []
+calibre_web_automated_downloader_docker_capabilities_custom: []
+calibre_web_automated_downloader_docker_capabilities: "{{ calibre_web_automated_downloader_docker_capabilities_default
+                                    + calibre_web_automated_downloader_docker_capabilities_custom }}"
+
+# Security Opts
+calibre_web_automated_downloader_docker_security_opts_default: []
+calibre_web_automated_downloader_docker_security_opts_custom: []
+calibre_web_automated_downloader_docker_security_opts: "{{ calibre_web_automated_downloader_docker_security_opts_default
+                                     + calibre_web_automated_downloader_docker_security_opts_custom }}"
+
+# Restart Policy
+calibre_web_automated_downloader_docker_restart_policy: unless-stopped
+
+# State
+calibre_web_automated_downloader_docker_state: started
+
+# Healthcheck
+calibre_web_automated_downloader_docker_healthcheck:
+  test: ["CMD", "pyrequests", "http://localhost:8084/request/api/status"]
+  interval: 30s
+  timeout: 30s
+  retries: 3
+  start_period: 5s
