@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Get the full path of the script
 SCRIPT_PATH=$(realpath "$0")
