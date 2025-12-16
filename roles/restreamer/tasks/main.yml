@@ -21,5 +21,17 @@
 - name: Create directories
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
 
+- name: Add hardware acceleration devices
+  ansible.builtin.include_tasks: "{{ mod_resources_tasks_path }}/docker/set_docker_devices_variable_list.yml"
+  vars:
+    docker_device_binds_list:
+      - { host_path: "/dev/dri", container_path: "/dev/dri" }
+      - { host_path: "/dev/video0", container_path: "/dev/video0" }
+      - { host_path: "/dev/snd", container_path: "/dev/snd" }
+
+- name: Debug Docker container creation 
+  ansible.builtin.include_tasks: "{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml"
+  when: lookup('file', mod_resources_tasks_path + '/docker/debug_docker_create_container.yml', errors='ignore')
+
 - name: Create Docker container
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"

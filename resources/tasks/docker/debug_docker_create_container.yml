@@ -12,6 +12,55 @@
 # It displays all the variables that would be passed to the docker_container module
 # Useful for troubleshooting container configuration issues
 
+- name: Inspect Docker network 'saltbox'
+  community.docker.docker_network_info:
+    name: saltbox
+  register: saltbox_net
+
+- name: Show containers attached to 'saltbox' (compact list)
+  ansible.builtin.debug:
+    msg: >-
+      {{ saltbox_net.network.Containers
+         | dict2items
+         | map(attribute='value')
+         | map(attribute='Name')
+         | list }}
+  when: saltbox_net.network is defined and saltbox_net.network.Containers is defined
+
+- name: Get all running Docker containers
+  community.docker.docker_host_info:
+    containers: true
+  register: docker_info
+
+# - name: Display raw docker info structure
+#   ansible.builtin.debug:
+#     var: docker_info
+#   when: docker_info is defined
+
+- name: Display running container details
+  ansible.builtin.debug:
+    msg: |
+      Name: {{ item.Names[0] if item.Names is defined else 'N/A' }}
+      Image: {{ item.Image | default('N/A') }}
+      Status: {{ item.Status | default('N/A') }}
+      State: {{ item.State | default('N/A') }}
+  loop: "{{ docker_info.containers }}"
+  loop_control:
+    label: "{{ item.Names[0] if item.Names is defined else item.Id }}"
+  when: docker_info.containers is defined and docker_info.containers | length > 0
+
+
+- name: Resources | Tasks | Docker | Set '_var_prefix' variable
+  ansible.builtin.set_fact:
+    _var_prefix: "{{ var_prefix
+                  if (var_prefix is defined)
+                  else role_name }}"
+
+- name: Resources | Tasks | Docker | Create Docker Container | Set Container Name
+  ansible.builtin.set_fact:
+    container_name: "{{ lookup('vars', _var_prefix + '_docker_container', default=_var_prefix) }}"
+
+                  
 - name: Resources | Tasks | Docker | Create Docker Container | Debug Container Properties
   ansible.builtin.debug:
     msg:
@@ -49,4 +98,6 @@
       - "Privileged: {{ lookup('vars', _var_prefix + '_docker_privileged', default='N/A') }}"
       - "Capabilities: {{ lookup('vars', _var_prefix + '_docker_capabilities', default='N/A') }}"
       - "Security Opts: {{ lookup('vars', _var_prefix + '_docker_security_opts', default='N/A') }}"
+      - "=== entrypoint ==="
+      - "{{ lookup('vars', _var_prefix + '_docker_entrypoint', default='N/A') }}"
   when: debug_docker_create_container | default(false)

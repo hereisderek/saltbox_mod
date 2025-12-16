@@ -1,0 +1,47 @@
+######################################################################################
+# Title:         Saltbox: Resources | Tasks | Docker | Set Docker Device Binds       #
+# Author(s):     Derek                                                               #
+# URL:           https://github.com/saltyorg/Saltbox                                 #
+# --                                                                                 #
+######################################################################################
+#                   GNU General Public License v3.0                                  #
+######################################################################################
+
+# This task file provides a reusable way to conditionally add device binds to Docker containers
+# based on whether the host devices/paths actually exist on the system.
+# It prevents container failures from mounting non-existent devices.
+---
+- name: Resources | Tasks | Docker | Set Docker Device Binds | Set 'docker_devices_var_name' temp variable
+  ansible.builtin.set_fact:
+    docker_devices_var_name: "{{ role_name + '_docker_devices_default' }}"
+  when: docker_devices_var_name is not defined
+
+- name: Resources | Tasks | Docker | Set Docker Device Binds | Check if device paths exist
+  ansible.builtin.stat:
+    path: "{{ item.host_path }}"
+  register: device_path_checks
+  loop: "{{ docker_device_binds_list | default([]) }}"
+  loop_control:
+    label: "{{ item.host_path }}"
+
+- name: Resources | Tasks | Docker | Set Docker Device Binds | Build device bind list
+  ansible.builtin.set_fact:
+    available_device_binds: "{{ available_device_binds | default([]) + [item.item.host_path + ':' + (item.item.container_path | default(item.item.host_path))] }}"
+  when: item.stat.exists
+  loop: "{{ device_path_checks.results }}"
+  loop_control:
+    label: "{{ item.item.host_path }}"
+
+- name: Resources | Tasks | Docker | Set Docker Device Binds | Update docker devices variable 
+  ansible.builtin.set_fact:
+    "{{ docker_devices_var_name }}": "{{ (lookup('vars', docker_devices_var_name, default=[]) + available_device_binds | default([])) | unique }}"
+  when: available_device_binds is defined and available_device_binds | length > 0
+
+- name: Resources | Tasks | Docker | Set Docker Device Binds | Debug added devices
+  ansible.builtin.debug:
+    msg:
+      - "Added device binds for {{ role_name }}:"
+      - "{{ available_device_binds | default(['None']) }}"
+  when: 
+    - debug_docker_device_binds | default(true)
+    - available_device_binds is defined

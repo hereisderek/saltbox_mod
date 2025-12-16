@@ -1,0 +1,185 @@
+##########################################################################
+# Title:            Saltbox Mod: Scrypted                                #
+# Author(s):        Derek                                                #
+# URL:              https://github.com/saltyorg/Saltbox_mod              #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+################################
+# Basics
+################################
+
+scrypted_name: scrypted
+
+################################
+# Settings
+################################
+
+scrypted_nvr_enabled: true
+scrypted_nvr_path: "/mnt/unionfs/Media/Recording/scrypted"
+scrypted_avahi_enabled: false
+scrypted_watchtower_enabled: false
+
+################################
+# Paths
+################################
+
+scrypted_paths_folder: "{{ scrypted_name }}"
+scrypted_paths_location: "{{ server_appdata_path }}/{{ scrypted_paths_folder }}"
+scrypted_paths_folders_list:
+  - "{{ scrypted_paths_location }}"
+  - "{{ scrypted_nvr_path }}"
+
+################################
+# Web
+################################
+
+scrypted_web_subdomain: "{{ scrypted_name }}"
+scrypted_web_domain: "{{ user.domain }}"
+scrypted_web_port: "11080"
+scrypted_web_url: "{{ 'https://' + (scrypted_web_subdomain + '.' + scrypted_web_domain
+                     if (scrypted_web_subdomain | length > 0)
+                     else scrypted_web_domain) }}"
+
+################################
+# DNS
+################################
+
+scrypted_dns_record: "{{ scrypted_web_subdomain }}"
+scrypted_dns_zone: "{{ scrypted_web_domain }}"
+scrypted_dns_proxy: "{{ dns.proxied }}"
+
+################################
+# Traefik
+################################
+
+scrypted_traefik_sso_middleware: "" # Scrypted handles its own authentication
+scrypted_traefik_middleware_default: "{{ traefik_default_middleware }}"
+scrypted_traefik_middleware_custom: ""
+scrypted_traefik_certresolver: "{{ traefik_default_certresolver }}"
+scrypted_traefik_enabled: true
+scrypted_traefik_api_enabled: false
+scrypted_traefik_api_endpoint: ""
+
+################################
+# Docker
+################################
+
+# Container
+scrypted_docker_container: "{{ scrypted_name }}"
+
+# Image
+scrypted_docker_image_pull: true
+scrypted_docker_image_tag: "{{ 'intel' if (gpu.intel | default(false)) else 'nvidia' if (use_nvidia | default(false)) else 'latest' }}"
+scrypted_docker_image: "ghcr.io/koush/scrypted:{{ scrypted_docker_image_tag }}"
+
+# Ports
+scrypted_docker_ports_defaults: []
+scrypted_docker_ports_custom: []
+scrypted_docker_ports: "{{ scrypted_docker_ports_defaults
+                          + scrypted_docker_ports_custom }}"
+
+# Envs
+scrypted_docker_envs_default:
+  SCRYPTED_WEBHOOK_UPDATE_AUTHORIZATION: "Bearer {{ user.pass }}"
+  SCRYPTED_WEBHOOK_UPDATE: "http://localhost:10444/v1/update"
+scrypted_docker_envs_nvr:
+  SCRYPTED_NVR_VOLUME: "/nvr"
+scrypted_docker_envs_avahi:
+  SCRYPTED_DOCKER_AVAHI: "true"
+scrypted_docker_envs_custom: {}
+scrypted_docker_envs: "{{ scrypted_docker_envs_default
+                         | combine(scrypted_docker_envs_nvr if scrypted_nvr_enabled else {})
+                         | combine(scrypted_docker_envs_avahi if scrypted_avahi_enabled else {})
+                         | combine(scrypted_docker_envs_custom) }}"
+
+# Commands
+scrypted_docker_commands_default: []
+scrypted_docker_commands_custom: []
+scrypted_docker_commands: "{{ scrypted_docker_commands_default
+                             + scrypted_docker_commands_custom }}"
+
+# Volumes
+scrypted_docker_volumes_default:
+  - "{{ scrypted_paths_location }}/volume:/server/volume"
+scrypted_docker_volumes_nvr:
+  - "{{ scrypted_nvr_path }}:/nvr"
+scrypted_docker_volumes_avahi:
+  - "/var/run/dbus:/var/run/dbus"
+  - "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket"
+scrypted_docker_volumes_custom: []
+scrypted_docker_volumes: "{{ scrypted_docker_volumes_default
+                            + (scrypted_docker_volumes_nvr if scrypted_nvr_enabled else [])
+                            + (scrypted_docker_volumes_avahi if scrypted_avahi_enabled else [])
+                            + scrypted_docker_volumes_custom }}"
+
+# Devices
+scrypted_docker_devices_default: []
+scrypted_docker_devices_custom: []
+scrypted_docker_devices: "{{ scrypted_docker_devices_default
+                            + scrypted_docker_devices_custom }}"
+
+# Hosts
+scrypted_docker_hosts_default: []
+scrypted_docker_hosts_custom: []
+scrypted_docker_hosts: "{{ docker_hosts_common
+                          | combine(scrypted_docker_hosts_default)
+                          | combine(scrypted_docker_hosts_custom) }}"
+
+# Labels
+scrypted_docker_labels_default:
+  com.centurylinklabs.watchtower.scope: "scrypted"
+scrypted_docker_labels_custom: {}
+scrypted_docker_labels: "{{ docker_labels_common
+                           | combine(scrypted_docker_labels_default)
+                           | combine(scrypted_docker_labels_custom) }}"
+
+# Hostname
+scrypted_docker_hostname: "{{ scrypted_name }}"
+
+# Network Mode
+scrypted_docker_network_mode_default: "host"
+scrypted_docker_network_mode: "{{ scrypted_docker_network_mode_default }}"
+
+# Networks
+scrypted_docker_networks_alias: "{{ scrypted_name }}"
+scrypted_docker_networks_default: []
+scrypted_docker_networks_custom: []
+scrypted_docker_networks: "{{ docker_networks_common
+                             + scrypted_docker_networks_default
+                             + scrypted_docker_networks_custom }}"
+
+# Capabilities
+scrypted_docker_capabilities_default: []
+scrypted_docker_capabilities_custom: []
+scrypted_docker_capabilities: "{{ scrypted_docker_capabilities_default
+                                 + scrypted_docker_capabilities_custom }}"
+
+# Security Opts
+scrypted_docker_security_opts_default: []
+scrypted_docker_security_opts_avahi:
+  - "apparmor:unconfined"
+scrypted_docker_security_opts_custom: []
+scrypted_docker_security_opts: "{{ scrypted_docker_security_opts_default
+                                  + (scrypted_docker_security_opts_avahi if scrypted_avahi_enabled else [])
+                                  + scrypted_docker_security_opts_custom }}"
+
+# Restart Policy
+scrypted_docker_restart_policy: unless-stopped
+
+# State
+scrypted_docker_state: started
+
+# Logging
+scrypted_docker_log_driver: "none"
+scrypted_docker_log_options: {}
+
+# Health Check
+scrypted_docker_healthcheck:
+  test: ["CMD-SHELL", "curl -f http://localhost:11080/ || exit 1"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s

@@ -79,7 +79,7 @@ restreamer_docker_container: "{{ restreamer_name }}"
 
 # Image
 restreamer_docker_image_pull: true
-restreamer_docker_image_tag: "latest"
+restreamer_docker_image_tag: "{{ 'vaapi-latest' if (gpu.intel | default(false)) else 'cuda-latest' if (use_nvidia | default(false)) else 'latest' }}"
 restreamer_docker_image: "datarhei/restreamer:{{ restreamer_docker_image_tag }}"
 
 # Ports

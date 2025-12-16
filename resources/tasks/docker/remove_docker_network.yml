@@ -1,0 +1,11 @@
+- name: Disconnect container from networks before removal
+  ansible.builtin.shell: |
+    for net in $(docker network inspect --format '{{range .Containers}}{{println .Name}}{{end}}' {{ docker_networks_name_common }} | grep -E "^{{ container_name }}$"); do
+      docker network disconnect -f {{ docker_networks_name_common }} {{ container_name }}
+    done
+  changed_when: false
+  
+- name: Remove container
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: absent

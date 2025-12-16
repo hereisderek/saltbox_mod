@@ -18,11 +18,12 @@
 
     - { role: calibre_web_automated, tags: ['calibre-web-automated'] }
     - { role: calibre_web_automated_downloader, tags: ['calibre-web-automated-downloader'] }
-    - { role: metube, tags: ['metube'] }
     - { role: ddns_updater, tags: ['ddns_updater'] }
     - { role: duplicati, tags: ['duplicati'] }
+    - { role: metube, tags: ['metube'] }
     - { role: restreamer, tags: ['restreamer'] }
-    - { role: youtubedl, tags: ['youtubedl'] }
-    - { role: tubesync, tags: ['tubesync'] }
+    - { role: scrypted, tags: ['scrypted'] }
     - { role: socks5_proxy, tags: ['socks5-proxy'] }
+    - { role: tubesync, tags: ['tubesync'] }
+    - { role: youtubedl, tags: ['youtubedl'] }
     - { role: ytdl_sub, tags: ['ytdl-sub'] }
