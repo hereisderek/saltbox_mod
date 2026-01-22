@@ -13,7 +13,7 @@ This script synchronizes media from a local mount (`/mnt/local/Media/`) to a rem
 - Systemd service/timer install option (`-i` / `--install-service`) to run every 30 minutes.
 - Safe locking to prevent concurrent runs (lockfile: `/tmp/saltbox_sync.lock`).
 - Logs stored under `/media/cache/logs/script/`.
-- Starts `/opt/saltbox_mod/scripts/saltbox_sync_samba.sh` after sync in a named detached GNU Screen session (`saltbox_sync_samba`) so you can reattach later. If the screen session is already running, it will be skipped. Samba helper output is written to `/media/cache/logs/script/samba_YYYY-MM-DD_HH-MM-SS.log`.
+- Starts `/opt/saltbox_mod/scripts/saltbox_sync_samba.sh` after sync in a named detached GNU Screen session (`saltbox_sync_samba`) so you can reattach later. If the screen session is already running, it will be skipped. If the Samba helper is already running (either in a screen session or as a background process), the sync script will skip starting another instance. Samba helper output is written to `/media/cache/logs/script/samba_YYYY-MM-DD_HH-MM-SS.log`.
 
 ## Using GNU Screen (quick guide)
 
@@ -104,7 +104,13 @@ The installation writes `saltbox-sync.service` and `saltbox-sync.timer` to `/etc
 - Uses `rsync` with `--files-from` generated from the source to avoid scanning large destinations.
 - `rsync` is run with `--size-only` (faster but may miss content changes if size unchanged).
 - After a successful `rsync`, files in the source older than `DELETE_AGE_MIN` minutes are deleted (including cleanup of empty dirs).
-- If any changes were detected (transferred/created/deleted), the script posts the log to the configured Healthchecks.io `PING_URL`.
+- If any changes were detected (transferred/created/deleted), the script posts the log to the configured Healthchecks.io `PING_URL` (sync result ping), sending the full sync log as the request body.
+- Every time the script evaluates whether to run (automatic checks) or when a manual forced run is triggered, it sends a lightweight "Saltbox sync check" ping to Healthchecks.io using the `CHECK_PING_URL` (`https://hc-ping.com/c68cb883-d088-44ba-80e5-dc1b360dcd35`). The check ping contains a short status payload (mode, space, time since last run, decision reason and timestamp).
+
+### Healthchecks Integration 🔔
+
+- **Sync result ping** (`PING_URL`): Sent only when a sync actually transferred/created/deleted files. The entire sync log file is POSTed as the request body to the configured `PING_URL`.
+- **Check ping** (`CHECK_PING_URL`): Sent every time the script evaluates whether to run (automatic checks) and when a manual force run is triggered. It contains a small plain-text payload with mode, space, time-since-last, decision (`ShouldRun`) and a timestamp. Check ping URL: `https://hc-ping.com/c68cb883-d088-44ba-80e5-dc1b360dcd35`.
 - A helper script `/opt/saltbox_mod/scripts/saltbox_sync_samba.sh` is invoked after the sync; review that script for additional post-sync behavior.
 
 ## Service Management & Debugging

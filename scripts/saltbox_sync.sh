@@ -34,7 +34,8 @@ SCRIPT_PATH=$(realpath "$0")
 LOG_DIR="/media/cache/logs/script"
 STATE_FILE="/opt/saltbox_mod/scripts/last_sync.state"
 LOCK_FILE="/tmp/saltbox_sync.lock"
-PING_URL="https://hc-ping.com/4dbc165b-f88e-4523-b8c9-95585f0e65d3"
+SYNC_RESULT_PING_URL="https://hc-ping.com/4dbc165b-f88e-4523-b8c9-95585f0e65d3"
+SYNC_CHECK_PING_URL="https://hc-ping.com/c68cb883-d088-44ba-80e5-dc1b360dcd35"
 
 SOURCE_DIR="/mnt/local/Media/"
 DEST_DIR="/mnt/remote/media/Media/"
@@ -107,7 +108,19 @@ update_last_sync_time() {
     date +%s > "$STATE_FILE"
 }
 
-install_service() {
+ping_check() {
+    local msg="$1"
+    if [ -n "${SYNC_CHECK_PING_URL:-}" ]; then
+        # Send a small check ping with the provided message (post body)
+        if echo -e "$msg" | curl -fsS -m 10 --retry 2 -X POST --data-binary @- "$SYNC_CHECK_PING_URL" >/dev/null 2>&1; then
+            log "Check ping sent to $SYNC_CHECK_PING_URL"
+        else
+            log "WARNING: Check ping to $SYNC_CHECK_PING_URL failed."
+        fi
+    fi
+}
+
+install_service() { 
     if [ "$EUID" -ne 0 ]; then
         echo "Error: Installation requires root privileges. Please run with sudo."
         exit 1
@@ -252,7 +265,11 @@ perform_sync() {
 
     if [ "$total_changes" -gt 0 ]; then
         log "Changes detected ($total_changes). Sending report to Healthchecks..."
-        curl -fsS -m 15 --retry 3 -X POST --data-binary @"$LOG_FILE" "$PING_URL" >/dev/null 2>&1
+        if curl -fsS -m 15 --retry 3 -X POST --data-binary @"$LOG_FILE" "$SYNC_RESULT_PING_URL" >/dev/null 2>&1; then
+            log "Sync result ping sent to $SYNC_RESULT_PING_URL"
+        else
+            log "WARNING: Sync result ping to $SYNC_RESULT_PING_URL failed."
+        fi
     else
         log "No changes detected."
     fi
@@ -260,17 +277,37 @@ perform_sync() {
     # Start samba helper in a detached screen session so it can be reattached later.
     # Session name: saltbox_sync_samba
     SCREEN_SESSION="saltbox_sync_samba"
-    if command -v screen >/dev/null 2>&1; then
-        # Screen sessions are listed as "<pid>.<name>\t(status)" — check for ".<name>" pattern
-        if screen -ls 2>/dev/null | grep -Eq "\\.${SCREEN_SESSION}([[:space:]]|\\(|$)"; then
-            log "Screen session '$SCREEN_SESSION' already running. Skipping samba helper startup."
-        else
-            log "Starting samba helper in detached screen session: $SCREEN_SESSION"
-            screen -dmS "$SCREEN_SESSION" bash -lc "/opt/saltbox_mod/scripts/saltbox_sync_samba.sh >> \"$LOG_DIR/samba_$(date '+%Y-%m-%d_%H-%M-%S').log\" 2>&1"
-        fi
+    TIMESTAMP="$(date '+%Y-%m-%d_%H-%M-%S')"
+    SAMBA_LOG="$LOG_DIR/samba_${TIMESTAMP}.log"
+
+    # Skip starting if helper is already running (anywhere), to avoid duplicates.
+    if pgrep -f "/opt/saltbox_mod/scripts/saltbox_sync_samba.sh" >/dev/null 2>&1; then
+        log "Samba helper already running. Skipping startup."
     else
-        log "WARNING: 'screen' not found. Running samba helper in background (nohup)."
-        nohup /opt/saltbox_mod/scripts/saltbox_sync_samba.sh >> "$LOG_DIR/samba_$(date '+%Y-%m-%d_%H-%M-%S').log" 2>&1 &
+        if command -v screen >/dev/null 2>&1; then
+            # Screen sessions are listed as "<pid>.<name>\t(status)" — check for ".<name>" pattern
+            if screen -ls 2>/dev/null | grep -Eq "\\.${SCREEN_SESSION}([[:space:]]|\\(|$)"; then
+                log "Screen session '$SCREEN_SESSION' already running. Skipping samba helper startup."
+            else
+                log "Starting samba helper in detached screen session: $SCREEN_SESSION"
+                if screen -dmS "$SCREEN_SESSION" bash -lc "/opt/saltbox_mod/scripts/saltbox_sync_samba.sh >> \"$SAMBA_LOG\" 2>&1"; then
+                    # Give screen a brief moment to register its session
+                    sleep 0.5
+                    if screen -ls 2>/dev/null | grep -Eq "\\.${SCREEN_SESSION}([[:space:]]|\\(|$)"; then
+                        log "Screen session '$SCREEN_SESSION' started successfully."
+                    else
+                        log "ERROR: screen created process but session not visible; falling back to nohup."
+                        nohup /opt/saltbox_mod/scripts/saltbox_sync_samba.sh >> "$SAMBA_LOG" 2>&1 &
+                    fi
+                else
+                    log "ERROR: failed to start screen session; falling back to nohup."
+                    nohup /opt/saltbox_mod/scripts/saltbox_sync_samba.sh >> "$SAMBA_LOG" 2>&1 &
+                fi
+            fi
+        else
+            log "WARNING: 'screen' not found. Running samba helper in background (nohup)."
+            nohup /opt/saltbox_mod/scripts/saltbox_sync_samba.sh >> "$SAMBA_LOG" 2>&1 &
+        fi
     fi
 
     # Update state
@@ -332,6 +369,10 @@ if [ "$FORCE" = false ]; then
         fi
     fi
 
+    # Send a Healthchecks.io check ping for every check (automatic decisions)
+    check_payload="Saltbox sync check\nMode: automatic\nSpace: ${avail_space}GB\nTimeSince: ${time_since}s\nShouldRun: ${should_run}\nReason: ${reason}\nTimestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    ping_check "$check_payload"
+
     if [ "$should_run" = true ]; then
         log "Triggering Sync: $reason"
         perform_sync
@@ -342,5 +383,7 @@ if [ "$FORCE" = false ]; then
     fi
 else
     log "Manual Force Sync Triggered."
+    check_payload="Saltbox sync check\nMode: forced\nTriggeredBy: manual\nTimestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    ping_check "$check_payload"
     perform_sync
 fi
