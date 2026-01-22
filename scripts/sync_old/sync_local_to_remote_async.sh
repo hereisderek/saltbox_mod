@@ -1,5 +1,11 @@
+#!/bin/bash
+
+# Description:
+# This script is a wrapper to run the sync_local_to_remote.sh script in a detached screen session.
+# It ensures that only one instance of the sync session is running at a time.
+# Intended to be run via cron.
+
 script_dir=$(dirname $(readlink -f $0))
-script_path="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 if ! /usr/bin/screen -list | /bin/grep -q "sync_download"; then
     printf "Starting sync_local_to_remote.sh in screen session\n"

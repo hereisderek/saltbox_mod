@@ -27,3 +27,4 @@
     - { role: tubesync, tags: ['tubesync'] }
     - { role: youtubedl, tags: ['youtubedl'] }
     - { role: ytdl_sub, tags: ['ytdl-sub'] }
+    - { role: music_tag_web, tags: ['music-tag-web'] }
