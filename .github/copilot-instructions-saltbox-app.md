@@ -1,11 +1,5 @@
 # Saltbox App Role Creation Guide
 
-This document provides complete instructions for an AI agent on how to create a new application role in `saltbox_mod` or `sandbox` environments so it can be managed properly by Saltbox.
-
-## Overview
-
-Saltbox makes heavy use of dynamic variable resolution (via custom plugins like `role_var` and `docker_var`) and centralized, reusable tasks located in `resources/tasks`. Creating an app does *not* involve writing Docker configurations via raw `docker_container` Ansible modules. Instead, you declare the configuration in `defaults/main.yml`, and then invoke the standard templates in `tasks/main.yml`.
-
 When a user asks: "Create a new saltbox app for `<app_name>`", follow this exact structure.
 
 ## 1. Directory Structure
@@ -177,3 +171,9 @@ Finally, remember to let the user know they need to add the role to their playbo
 ```yaml
     - { role: <app_name>, tags: ['<app_name>'] }
 ```
+
+To deploy and install the mod role you just created or modified, instruct the user to run:
+`sb install mod-<app_name>`
+
+## 6. Author
+Auther is hereisderek, and the repo is https://github.com/hereisderek/saltbox_mod. update author for any newly implemented roles accordingly.
