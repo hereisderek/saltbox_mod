@@ -30,3 +30,5 @@
     - { role: music_tag_web, tags: ['music-tag-web', 'music_tag_web'] }
     - { role: dockge, tags: ['dockge'] }
     - { role: simple_sq_music_plus, tags: ['simple_sq_music_plus'] }
+    - { role: lxserver, tags: ['lxserver'] }
+    - { role: solara, tags: ['solara'] }

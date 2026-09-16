@@ -1,0 +1,95 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | lxserver | Defaults                        #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+##################################################################################
+
+################################
+# Basics
+################################
+lxserver_name: lxserver
+
+################################
+# Paths
+################################
+lxserver_role_paths_folder: "{{ lxserver_name }}"
+lxserver_role_paths_location: "{{ server_appdata_path }}/{{ lxserver_role_paths_folder }}"
+lxserver_role_paths_folders_list:
+  - "{{ lxserver_role_paths_location }}"
+  - "{{ lxserver_role_paths_location }}/data"
+  - "{{ lxserver_role_paths_location }}/logs"
+  - "{{ lxserver_role_paths_location }}/cache"
+  - "{{ lxserver_role_paths_location }}/music"
+
+################################
+# Web
+################################
+lxserver_role_web_subdomain: "{{ lxserver_name }}"
+lxserver_role_web_domain: "{{ user.domain }}"
+lxserver_role_web_port: "9527"
+lxserver_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='lxserver') + '.' + lookup('role_var', '_web_domain', role='lxserver') if (lookup('role_var', '_web_subdomain', role='lxserver') | length > 0) else lookup('role_var', '_web_domain', role='lxserver')) }}"
+
+################################
+# DNS
+################################
+lxserver_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='lxserver') }}"
+lxserver_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='lxserver') }}"
+lxserver_role_dns_proxy: "{{ dns_proxied }}"
+
+################################
+# Traefik (Reverse Proxy & Auth)
+################################
+lxserver_role_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+lxserver_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+lxserver_role_traefik_middleware_custom: ""
+lxserver_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+lxserver_role_traefik_enabled: true
+lxserver_role_traefik_api_enabled: false
+lxserver_role_traefik_api_endpoint: ""
+
+################################
+# Docker
+################################
+lxserver_role_docker_container: "{{ lxserver_name }}"
+
+# Image
+lxserver_role_docker_image_pull: true
+lxserver_role_docker_image_repo: "xcq0607/lxserver"
+lxserver_role_docker_image_tag: "latest"
+lxserver_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='lxserver') }}:{{ lookup('role_var', '_docker_image_tag', role='lxserver') }}"
+
+# Envs
+lxserver_role_docker_envs_default:
+  PUID: "{{ uid }}"
+  PGID: "{{ gid }}"
+  TZ: "{{ tz }}"
+  NODE_ENV: "production"
+  PORT: "9527"
+lxserver_role_docker_envs_custom: {}
+lxserver_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='lxserver') | combine(lookup('role_var', '_docker_envs_custom', role='lxserver')) }}"
+
+# Volumes
+lxserver_role_docker_volumes_default:
+  - "{{ lxserver_role_paths_location }}/data:/server/data"
+  - "{{ lxserver_role_paths_location }}/logs:/server/logs"
+  - "{{ lxserver_role_paths_location }}/cache:/server/cache"
+  - "{{ lxserver_role_paths_location }}/music:/server/music"
+lxserver_role_docker_volumes_custom: []
+lxserver_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='lxserver') + lookup('role_var', '_docker_volumes_custom', role='lxserver') }}"
+
+# Ports
+lxserver_role_docker_ports_defaults: []
+lxserver_role_docker_ports_custom: []
+lxserver_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='lxserver') + lookup('role_var', '_docker_ports_custom', role='lxserver') }}"
+
+# Network & Hostname
+lxserver_role_docker_hostname: "{{ lxserver_name }}"
+lxserver_role_docker_networks_alias: "{{ lxserver_name }}"
+lxserver_role_docker_networks_default: []
+lxserver_role_docker_networks_custom: []
+lxserver_role_docker_networks: "{{ docker_networks_common + lookup('role_var', '_docker_networks_default', role='lxserver') + lookup('role_var', '_docker_networks_custom', role='lxserver') }}"
+
+# Operations
+lxserver_role_docker_restart_policy: unless-stopped
+lxserver_role_docker_state: started

@@ -122,13 +122,39 @@ Proceed to step 4.
 
 ## Custom Services Catalog
 
-Custom applications maintained in this repository include:
+This repository maintains custom Ansible roles and integrations extending the stock Saltbox environment:
 
 | Service | Tag | Description | Detailed Technical Docs |
 |---|---|---|---|
-| **Dockge** | `dockge` | Self-hosted Docker Compose stack manager with web UI | [docs/dockge.md](docs/dockge.md) |
-| **Music-Tag-Web** | `music-tag-web` | Web-based audio metadata and ID3 tagging editor | [docs/music_tag_web.md](docs/music_tag_web.md) |
-| **Simple SQ Music Plus** | `simple_sq_music_plus` | Music streaming and management application | [docs/simple_sq_music_plus.md](docs/simple_sq_music_plus.md) |
+| **Calibre-Web Automated** | `calibre-web-automated` | eBook library manager with ThemePark integration and universal calibre mod | [docs/calibre_web_automated.md](docs/calibre_web_automated.md) |
+| **Calibre-Web Downloader** | `calibre-web-automated-downloader` | Automated book downloader integrating Anna's Archive with Cloudflare bypass | [docs/calibre_web_automated_downloader.md](docs/calibre_web_automated_downloader.md) |
+| **DDNS Updater** | `ddns_updater` | Dynamic DNS updater supporting multiple external DNS providers | [docs/ddns_updater.md](docs/ddns_updater.md) |
+| **Dockge** | `dockge` | Self-hosted Docker Compose stack manager with web UI (`/opt/stacks`) | [docs/dockge.md](docs/dockge.md) |
+| **Duplicati** | `duplicati` | Encrypted backup system backing up `/srv` and `/opt` to secondary storage | [docs/duplicati.md](docs/duplicati.md) |
+| **LXServer** | `lxserver` | LX Music data synchronization server and WebPlayer with music library streaming | [docs/lxserver.md](docs/lxserver.md) |
+| **MeTube** | `metube` | Web GUI for downloading video and audio from YouTube using yt-dlp | [docs/metube.md](docs/metube.md) |
+| **Music-Tag-Web** | `music-tag-web` | Web-based audio metadata and ID3 tagging editor for the music library | [docs/music_tag_web.md](docs/music_tag_web.md) |
+| **Restreamer** | `restreamer` | Live video streaming server with VA-API hardware acceleration | [docs/restreamer.md](docs/restreamer.md) |
+| **Scrypted** | `scrypted` | High-performance home security camera video integration platform and NVR | [docs/scrypted.md](docs/scrypted.md) |
+| **Simple SQ Music Plus** | `simple_sq_music_plus` | Music streaming and library management platform | [docs/simple_sq_music_plus.md](docs/simple_sq_music_plus.md) |
+| **SOCKS5 Proxy** | `socks5-proxy` | Lightweight SOCKS5 proxy routed through Gluetun VPN container mode | [docs/socks5_proxy.md](docs/socks5_proxy.md) |
+| **Solara** | `solara` | Modern web music player with dynamic synchronized lyrics and chart radars | [docs/solara.md](docs/solara.md) |
+| **TubeSync** | `tubesync` | Syncs YouTube channels and playlists locally into organized media libraries | [docs/tubesync.md](docs/tubesync.md) |
+| **YouTube-DL Material** | `youtubedl` | Web-based YouTube video downloader with MongoDB backend | [docs/youtubedl.md](docs/youtubedl.md) |
+| **YTDL-Sub** | `ytdl-sub` | Scheduled YouTube subscription scraper into Plex/Emby library structure | [docs/ytdl_sub.md](docs/ytdl_sub.md) |
 
-> For comprehensive guidelines on authoring roles, workspace boundaries, and media library storage conventions, consult [AGENTS.md](AGENTS.md).
+### Deployment Quick Reference
+Deploy any of the above custom roles using the `sb` CLI:
+```bash
+sb install mod-<service_tag>
+# Example:
+sb install mod-lxserver
+sb install mod-solara
+```
+Or directly with Ansible:
+```bash
+sudo ansible-playbook /opt/saltbox_mod/saltbox_mod.yml --tags <service_tag>
+```
+
+> For comprehensive developer instructions, workspace boundaries, storage conventions, and inventory override mechanics, consult [AGENTS.md](AGENTS.md).
 
