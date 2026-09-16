@@ -1,153 +1,90 @@
-##########################################################################
-# Title:            music-tag-web                                        #
-# Author(s):        [User]                                               #
-# URL:              https://github.com/xhongc/music-tag-web              #
-# --                                                                     #
-##########################################################################
-#                   GNU General Public License v3.0                      #
-##########################################################################
 ---
 ################################
 # Basics
 ################################
-
 music_tag_web_name: music_tag_web
 
 ################################
 # Paths
 ################################
-
-music_tag_web_paths_folder: "music-tag-web"
-music_tag_web_paths_location: "/opt/{{ music_tag_web_paths_folder }}"
-music_tag_web_media_folder: "/mnt/unionfs/Media/Music/library"
-music_tag_web_paths_folders_list:
-  - "{{ music_tag_web_paths_location }}"
+music_tag_web_role_paths_folder: "music-tag-web"
+music_tag_web_role_paths_location: "{{ server_appdata_path }}/{{ music_tag_web_role_paths_folder }}"
+music_tag_web_role_paths_folders_list:
+  - "{{ music_tag_web_role_paths_location }}"
+  - "/mnt/unionfs/Media/Music/library"
 
 ################################
 # Web
 ################################
-
-music_tag_web_web_subdomain: "music-tag"
-music_tag_web_web_domain: "{{ user.domain }}"
-music_tag_web_web_port: "8001"
-music_tag_web_web_url: "{{ 'https://' + music_tag_web_web_subdomain + '.' + music_tag_web_web_domain
-                     if (music_tag_web_web_subdomain | length > 0)
-                     else music_tag_web_web_domain }}"
+music_tag_web_role_web_subdomain: "music-tag"
+music_tag_web_role_web_domain: "{{ user.domain }}"
+music_tag_web_role_web_port: "8002"
+music_tag_web_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='music_tag_web') + '.' + lookup('role_var', '_web_domain', role='music_tag_web') if (lookup('role_var', '_web_subdomain', role='music_tag_web') | length > 0) else lookup('role_var', '_web_domain', role='music_tag_web')) }}"
 
 ################################
 # DNS
 ################################
-
-music_tag_web_dns_record: "{{ music_tag_web_web_subdomain }}"
-music_tag_web_dns_zone: "{{ music_tag_web_web_domain }}"
-music_tag_web_dns_proxy: "{{ dns.proxied }}"
+music_tag_web_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='music_tag_web') }}"
+music_tag_web_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='music_tag_web') }}"
+music_tag_web_role_dns_proxy: "{{ dns_proxied }}"
 
 ################################
-# Traefik
+# Traefik (Reverse Proxy & Auth)
 ################################
-
-music_tag_web_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
-music_tag_web_traefik_middleware: "{{ traefik_default_middleware + ',' + music_tag_web_traefik_sso_middleware
-                                if (music_tag_web_traefik_sso_middleware | length > 0)
-                                else traefik_default_middleware }}"
-music_tag_web_traefik_certresolver: "{{ traefik_default_certresolver }}"
-music_tag_web_traefik_enabled: true
+music_tag_web_role_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+music_tag_web_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+music_tag_web_role_traefik_middleware_custom: ""
+music_tag_web_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+music_tag_web_role_traefik_enabled: true
+music_tag_web_role_traefik_api_enabled: false
+music_tag_web_role_traefik_api_endpoint: ""
 
 ################################
 # Docker
 ################################
-
-# Container
-music_tag_web_docker_container: "music-tag-web"
+music_tag_web_role_docker_container: "music-tag-web"
 
 # Image
-music_tag_web_docker_image_pull: true
-music_tag_web_docker_image_tag: "latest"
-music_tag_web_docker_image: "xhongc/music_tag_web:{{ music_tag_web_docker_image_tag }}"
-
-# Ports
-music_tag_web_docker_ports_defaults: []
-music_tag_web_docker_ports_custom: []
-music_tag_web_docker_ports: "{{ music_tag_web_docker_ports_defaults
-                             + music_tag_web_docker_ports_custom }}"
+music_tag_web_role_docker_image_pull: true
+music_tag_web_role_docker_image_repo: "xhongc/music_tag_web"
+music_tag_web_role_docker_image_tag: "latest"
+music_tag_web_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='music_tag_web') }}:{{ lookup('role_var', '_docker_image_tag', role='music_tag_web') }}"
 
 # Envs
-music_tag_web_docker_envs_default:
+music_tag_web_role_docker_envs_default:
   PUID: "{{ uid }}"
   PGID: "{{ gid }}"
   TZ: "{{ tz }}"
 
-music_tag_web_docker_envs_custom: []
-music_tag_web_docker_envs: "{{ music_tag_web_docker_envs_default
-                            | combine(music_tag_web_docker_envs_custom) }}"
+music_tag_web_role_docker_envs_custom: {}
+music_tag_web_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='music_tag_web') | combine(lookup('role_var', '_docker_envs_custom', role='music_tag_web')) }}"
 
 # Volumes
-music_tag_web_docker_volumes_default:
-  - "{{ music_tag_web_media_folder }}:/app/media:rw"
-  - "{{ music_tag_web_paths_location }}:/app/data"
+music_tag_web_role_docker_volumes_default:
+  - "{{ music_tag_web_role_paths_location }}:/app/data"
+  - "/mnt/unionfs/Media/Music/library:/app/media:rw"
 
-music_tag_web_docker_volumes_custom: []
-music_tag_web_docker_volumes: "{{ music_tag_web_docker_volumes_default
-                               + music_tag_web_docker_volumes_custom }}"
+music_tag_web_role_docker_volumes_custom: []
+music_tag_web_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='music_tag_web') + lookup('role_var', '_docker_volumes_custom', role='music_tag_web') }}"
+
+# Ports
+music_tag_web_role_docker_ports_defaults: []
+music_tag_web_role_docker_ports_custom: []
+music_tag_web_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='music_tag_web') + lookup('role_var', '_docker_ports_custom', role='music_tag_web') }}"
+
+# Network & Hostname
+music_tag_web_role_docker_hostname: "{{ music_tag_web_name }}"
+music_tag_web_role_docker_networks_alias: "{{ music_tag_web_name }}"
+music_tag_web_role_docker_networks_default: []
+music_tag_web_role_docker_networks_custom: []
+music_tag_web_role_docker_networks: "{{ docker_networks_common + lookup('role_var', '_docker_networks_default', role='music_tag_web') + lookup('role_var', '_docker_networks_custom', role='music_tag_web') }}"
 
 # Commands
-music_tag_web_docker_commands_default: ["/start"]
-music_tag_web_docker_commands_custom: []
-music_tag_web_docker_commands: "{{ music_tag_web_docker_commands_default
-                                + music_tag_web_docker_commands_custom }}"
+music_tag_web_role_docker_commands_default: ["/start"]
+music_tag_web_role_docker_commands_custom: []
+music_tag_web_role_docker_commands: "{{ lookup('role_var', '_docker_commands_default', role='music_tag_web') + lookup('role_var', '_docker_commands_custom', role='music_tag_web') }}"
 
-# Devices
-music_tag_web_docker_devices_default: []
-music_tag_web_docker_devices_custom: []
-music_tag_web_docker_devices: "{{ music_tag_web_docker_devices_default
-                               + music_tag_web_docker_devices_custom }}"
 
-# Hosts
-music_tag_web_docker_hosts_default: {}
-music_tag_web_docker_hosts_custom: {}
-music_tag_web_docker_hosts: "{{ docker_hosts_common
-                             | combine(music_tag_web_docker_hosts_default)
-                             | combine(music_tag_web_docker_hosts_custom) }}"
-
-# Labels
-music_tag_web_docker_labels_default:
-  "traefik.enable": "{{ music_tag_web_traefik_enabled | string }}"
-  "traefik.http.routers.music-tag-web.rule": "Host(`{{ music_tag_web_web_subdomain }}.{{ music_tag_web_web_domain }}`)"
-  "traefik.http.routers.music-tag-web.entrypoints": "websecure"
-  "traefik.http.routers.music-tag-web.tls.certresolver": "{{ music_tag_web_traefik_certresolver }}"
-  "traefik.http.routers.music-tag-web.middlewares": "{{ music_tag_web_traefik_middleware }}"
-  "traefik.http.services.music-tag-web.loadbalancer.server.port": "8001"
-
-music_tag_web_docker_labels_custom: {}
-music_tag_web_docker_labels: "{{ docker_labels_common
-                              | combine(music_tag_web_docker_labels_default)
-                              | combine(music_tag_web_docker_labels_custom) }}"
-
-# Hostname
-music_tag_web_docker_hostname: "{{ music_tag_web_name }}"
-
-# Networks
-music_tag_web_docker_networks_alias: "{{ music_tag_web_name }}"
-music_tag_web_docker_networks_default: []
-music_tag_web_docker_networks_custom: []
-music_tag_web_docker_networks: "{{ docker_networks_common
-                                + music_tag_web_docker_networks_default
-                                + music_tag_web_docker_networks_custom }}"
-
-# Capabilities
-music_tag_web_docker_capabilities_default: []
-music_tag_web_docker_capabilities_custom: []
-music_tag_web_docker_capabilities: "{{ music_tag_web_docker_capabilities_default
-                                    + music_tag_web_docker_capabilities_custom }}"
-
-# Security Opts
-music_tag_web_docker_security_opts_default: []
-music_tag_web_docker_security_opts_custom: []
-music_tag_web_docker_security_opts: "{{ music_tag_web_docker_security_opts_default
-                                     + music_tag_web_docker_security_opts_custom }}"
-
-# Restart Policy
-music_tag_web_docker_restart_policy: unless-stopped
-
-# State
-music_tag_web_docker_state: started
+# Operations
+music_tag_web_role_docker_restart_policy: unless-stopped
+music_tag_web_role_docker_state: started

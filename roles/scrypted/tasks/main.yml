@@ -25,7 +25,7 @@
   vars:
     docker_device_binds_list:
       - { host_path: "/dev/dri", container_path: "/dev/dri" }
-      - { host_path: "/dev/video0", container_path: "/dev/video0" }
+      # - { host_path: "/dev/video0", container_path: "/dev/video0" }
 
 - name: Debug Docker container creation 
   ansible.builtin.include_tasks: "{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml"
