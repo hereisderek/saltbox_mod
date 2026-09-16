@@ -1,6 +1,6 @@
 #########################################################################
 # Title:            Saltbox Mod: Debug Docker Container Creation        #
-# Author(s):        GitHub Copilot                                      #
+# Author(s):        GitHub Copilot, hereisderek                         #
 # URL:              https://github.com/saltyorg/Saltbox_mod             #
 # --                                                                    #
 #########################################################################
@@ -8,226 +8,228 @@
 #########################################################################
 ---
 # This task provides comprehensive debugging output for Docker container creation
+# It is completely skipped if debug_docker_create_container is unset or false.
 
-- name: Inspect Docker network 'saltbox'
-  community.docker.docker_network_info:
-    name: saltbox
-  register: saltbox_net
-  ignore_errors: true
+- name: Saltbox Mod | Debug | Container Creation Diagnostics
+  when: debug_docker_create_container | default(false) | bool
+  block:
+    - name: Inspect Docker network 'saltbox'
+      community.docker.docker_network_info:
+        name: saltbox
+      register: saltbox_net
+      ignore_errors: true
 
-- name: Show containers attached to 'saltbox' (compact list)
-  ansible.builtin.debug:
-    msg: >-
-      {{ saltbox_net.network.Containers
-         | dict2items
-         | map(attribute='value')
-         | map(attribute='Name')
-         | list }}
-  when: saltbox_net.network is defined and saltbox_net.network.Containers is defined
+    - name: Show containers attached to 'saltbox' (compact list)
+      ansible.builtin.debug:
+        msg: >-
+          {{ saltbox_net.network.Containers
+             | dict2items
+             | map(attribute='value')
+             | map(attribute='Name')
+             | list }}
+      when: saltbox_net.network is defined and saltbox_net.network.Containers is defined
 
-- name: Get all running Docker containers
-  community.docker.docker_host_info:
-    containers: true
-  register: docker_info
-  ignore_errors: true
+    - name: Get all running Docker containers
+      community.docker.docker_host_info:
+        containers: true
+      register: docker_info
+      ignore_errors: true
 
-- name: Display running container details
-  ansible.builtin.debug:
-    msg: |
-      Name: {{ item.Names[0] if item.Names is defined else 'N/A' }}
-      Image: {{ item.Image | default('N/A') }}
-      Status: {{ item.Status | default('N/A') }}
-      State: {{ item.State | default('N/A') }}
-  loop: "{{ docker_info.containers }}"
-  loop_control:
-    label: "{{ item.Names[0] if item.Names is defined else item.Id }}"
-  when: docker_info.containers is defined and docker_info.containers | length > 0
+    - name: Display running container details
+      ansible.builtin.debug:
+        msg: |
+          Name: {{ item.Names[0] if item.Names is defined else 'N/A' }}
+          Image: {{ item.Image | default('N/A') }}
+          Status: {{ item.Status | default('N/A') }}
+          State: {{ item.State | default('N/A') }}
+      loop: "{{ docker_info.containers }}"
+      loop_control:
+        label: "{{ item.Names[0] if item.Names is defined else item.Id }}"
+      when: docker_info.containers is defined and docker_info.containers | length > 0
 
-- name: Resources | Tasks | Docker | Set '_var_prefix' variable
-  ansible.builtin.set_fact:
-    _var_prefix: "{{ var_prefix if (var_prefix is defined) else role_name }}"
+    - name: Resources | Tasks | Docker | Set '_var_prefix' variable
+      ansible.builtin.set_fact:
+        _var_prefix: "{{ var_prefix if (var_prefix is defined) else role_name }}"
 
-- name: Resources | Tasks | Docker | Create Docker Container | Set instance name
-  ansible.builtin.set_fact:
-    _instance_name: "{{ lookup('vars', _var_prefix + '_name', default=_var_prefix) }}"
+    - name: Resources | Tasks | Docker | Create Docker Container | Set instance name
+      ansible.builtin.set_fact:
+        _instance_name: "{{ lookup('vars', _var_prefix + '_name', default=_var_prefix) }}"
 
-- name: Saltbox Mod | Debug | Resolve docker vars
-  ansible.builtin.set_fact:
-    debug_docker_vars: "{{ lookup('docker_vars', specs=_docker_var_specs) }}"
-  vars:
-    _docker_var_specs:
-      _docker_commands:
-        default: []
-      _docker_cpus:
-        default: "{{ docker_cpus_default }}"
-      _docker_envs:
-        default: {}
-      _docker_hosts_use_common:
-        default: true
-      _docker_hosts:
-        default: {}
-      _docker_network_mode:
-        default: "{{ docker_networks_name_common }}"
-      _docker_exposed_ports:
-        default: []
-      _docker_hostname:
-        default: ""
-      _docker_labels_use_common:
-        default: true
-      _docker_labels:
-        default: {}
-      _docker_log_driver:
-        default: ""
-      _docker_log_options:
-        default: {}
-      _docker_memory:
-        default: "{{ docker_memory_default }}"
-      _docker_networks:
-        default: []
-      _docker_ports:
-        default: []
-      _docker_volumes:
-        default: []
-      _docker_volumes_global:
-        default: true
-      _docker_auto_remove:
-        omit: true
-      _docker_blkio_weight:
-        omit: true
-      _docker_cap_drop:
-        omit: true
-      _docker_capabilities:
-        omit: true
-      _docker_cgroup_parent:
-        omit: true
-      _docker_cgroupns_mode:
-        omit: true
-      _docker_cleanup:
-        omit: true
-      _docker_cpu_period:
-        omit: true
-      _docker_cpu_quota:
-        omit: true
-      _docker_cpu_shares:
-        omit: true
-      _docker_cpuset_cpus:
-        omit: true
-      _docker_cpuset_mems:
-        omit: true
-      _docker_device_cgroup_rules:
-        omit: true
-      _docker_device_read_bps:
-        omit: true
-      _docker_device_read_iops:
-        omit: true
-      _docker_device_requests:
-        omit: true
-      _docker_device_write_bps:
-        omit: true
-      _docker_device_write_iops:
-        omit: true
-      _docker_devices:
-        omit: true
-      _docker_dns_opts:
-        omit: true
-      _docker_dns_search_domains:
-        omit: true
-      _docker_dns_servers:
-        omit: true
-      _docker_domainname:
-        omit: true
-      _docker_entrypoint:
-        omit: true
-      _docker_env_file:
-        omit: true
-      _docker_groups:
-        omit: true
-      _docker_healthcheck:
-        omit: true
-      _docker_healthy_wait_timeout:
-        default: 300
-      _docker_image:
-        required: true
-      _docker_init:
-        omit: true
-      _docker_ipc_mode:
-        omit: true
-      _docker_keep_volumes:
-        omit: true
-      _docker_kernel_memory:
-        omit: true
-      _docker_kill_signal:
-        omit: true
-      _docker_links:
-        omit: true
-      _docker_memory_reservation:
-        omit: true
-      _docker_memory_swap:
-        omit: true
-      _docker_memory_swappiness:
-        omit: true
-      _docker_mounts:
-        omit: true
-      _docker_container:
-        default: "{{ _instance_name }}"
-      _docker_oom_killer:
-        omit: true
-      _docker_oom_score_adj:
-        omit: true
-      _docker_output_logs:
-        omit: true
-      _docker_paused:
-        omit: true
-      _docker_pid_mode:
-        omit: true
-      _docker_privileged:
-        omit: true
-      _docker_image_pull:
-        default: true
-      _docker_read_only:
-        omit: true
-      _docker_recreate:
-        omit: true
-      _docker_restart_policy:
-        default: "unless-stopped"
-      _docker_restart_retries:
-        omit: true
-      _docker_runtime:
-        omit: true
-      _docker_security_opts:
-        omit: true
-      _docker_shm_size:
-        omit: true
-      _docker_stop_signal:
-        omit: true
-      _docker_stop_timeout:
-        default: "10"
-      _docker_storage_opts:
-        omit: true
-      _docker_sysctls:
-        omit: true
-      _docker_tmpfs:
-        omit: true
-      _docker_ulimits:
-        omit: true
-      _docker_user:
-        omit: true
-      _docker_userns_mode:
-        omit: true
-      _docker_uts:
-        omit: true
-      _docker_volume_driver:
-        omit: true
-      _docker_volumes_from:
-        omit: true
-      _docker_working_dir:
-        omit: true
-      _docker_create_timeout:
-        default: 120
+    - name: Saltbox Mod | Debug | Resolve docker vars
+      ansible.builtin.set_fact:
+        debug_docker_vars: "{{ lookup('docker_vars', specs=_docker_var_specs) }}"
+      vars:
+        _docker_var_specs:
+          _docker_commands:
+            default: []
+          _docker_cpus:
+            default: "{{ docker_cpus_default }}"
+          _docker_envs:
+            default: {}
+          _docker_hosts_use_common:
+            default: true
+          _docker_hosts:
+            default: {}
+          _docker_network_mode:
+            default: "{{ docker_networks_name_common }}"
+          _docker_exposed_ports:
+            default: []
+          _docker_hostname:
+            default: ""
+          _docker_labels_use_common:
+            default: true
+          _docker_labels:
+            default: {}
+          _docker_log_driver:
+            default: ""
+          _docker_log_options:
+            default: {}
+          _docker_memory:
+            default: "{{ docker_memory_default }}"
+          _docker_networks:
+            default: []
+          _docker_ports:
+            default: []
+          _docker_volumes:
+            default: []
+          _docker_volumes_global:
+            default: true
+          _docker_auto_remove:
+            omit: true
+          _docker_blkio_weight:
+            omit: true
+          _docker_cap_drop:
+            omit: true
+          _docker_capabilities:
+            omit: true
+          _docker_cgroup_parent:
+            omit: true
+          _docker_cgroupns_mode:
+            omit: true
+          _docker_cleanup:
+            omit: true
+          _docker_cpu_period:
+            omit: true
+          _docker_cpu_quota:
+            omit: true
+          _docker_cpu_shares:
+            omit: true
+          _docker_cpuset_cpus:
+            omit: true
+          _docker_cpuset_mems:
+            omit: true
+          _docker_device_cgroup_rules:
+            omit: true
+          _docker_device_read_bps:
+            omit: true
+          _docker_device_read_iops:
+            omit: true
+          _docker_device_requests:
+            omit: true
+          _docker_device_write_bps:
+            omit: true
+          _docker_device_write_iops:
+            omit: true
+          _docker_devices:
+            omit: true
+          _docker_dns_opts:
+            omit: true
+          _docker_dns_search_domains:
+            omit: true
+          _docker_dns_servers:
+            omit: true
+          _docker_domainname:
+            omit: true
+          _docker_entrypoint:
+            omit: true
+          _docker_env_file:
+            omit: true
+          _docker_groups:
+            omit: true
+          _docker_healthcheck:
+            omit: true
+          _docker_healthy_wait_timeout:
+            default: 300
+          _docker_image:
+            required: true
+          _docker_init:
+            omit: true
+          _docker_ipc_mode:
+            omit: true
+          _docker_keep_volumes:
+            omit: true
+          _docker_kernel_memory:
+            omit: true
+          _docker_kill_signal:
+            omit: true
+          _docker_links:
+            omit: true
+          _docker_memory_reservation:
+            omit: true
+          _docker_memory_swap:
+            omit: true
+          _docker_memory_swappiness:
+            omit: true
+          _docker_mounts:
+            omit: true
+          _docker_container:
+            default: "{{ _instance_name }}"
+          _docker_oom_killer:
+            omit: true
+          _docker_oom_score_adj:
+            omit: true
+          _docker_output_logs:
+            omit: true
+          _docker_paused:
+            omit: true
+          _docker_pid_mode:
+            omit: true
+          _docker_privileged:
+            omit: true
+          _docker_image_pull:
+            default: true
+          _docker_read_only:
+            omit: true
+          _docker_recreate:
+            omit: true
+          _docker_restart_policy:
+            default: "unless-stopped"
+          _docker_restart_retries:
+            omit: true
+          _docker_runtime:
+            omit: true
+          _docker_security_opts:
+            omit: true
+          _docker_shm_size:
+            omit: true
+          _docker_stop_signal:
+            omit: true
+          _docker_stop_timeout:
+            default: "10"
+          _docker_storage_opts:
+            omit: true
+          _docker_sysctls:
+            omit: true
+          _docker_tmpfs:
+            omit: true
+          _docker_ulimits:
+            omit: true
+          _docker_user:
+            omit: true
+          _docker_userns_mode:
+            omit: true
+          _docker_uts:
+            omit: true
+          _docker_volume_driver:
+            omit: true
+          _docker_volumes_from:
+            omit: true
+          _docker_working_dir:
+            omit: true
+          _docker_create_timeout:
+            default: 120
 
-- name: Saltbox Mod | Debug | Output computed properties
-  ansible.builtin.debug:
-    msg: >-
-      {{ dict(debug_docker_vars | dict2items | selectattr('value.omit', 'equalto', false) | map(attribute='key') | zip(debug_docker_vars | dict2items | selectattr('value.omit', 'equalto', false) | map(attribute='value.value'))) }}
-  when: debug_docker_create_container | default(false)
-
+    - name: Saltbox Mod | Debug | Output computed properties
+      ansible.builtin.debug:
+        msg: >-
+          {{ dict(debug_docker_vars | dict2items | selectattr('value.omit', 'equalto', false) | map(attribute='key') | zip(debug_docker_vars | dict2items | selectattr('value.omit', 'equalto', false) | map(attribute='value.value'))) }}
