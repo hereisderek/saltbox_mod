@@ -231,5 +231,4 @@
 
     - name: Saltbox Mod | Debug | Output computed properties
       ansible.builtin.debug:
-        msg: >-
-          {{ dict(debug_docker_vars | dict2items | selectattr('value.omit', 'equalto', false) | map(attribute='key') | zip(debug_docker_vars | dict2items | selectattr('value.omit', 'equalto', false) | map(attribute='value.value'))) }}
+        var: debug_docker_vars

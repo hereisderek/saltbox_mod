@@ -109,9 +109,8 @@ All custom variable overrides belong in:
    - `<role>_role_docker_devices_custom`
    - `<role>_role_docker_commands_custom`
    *(Exception: When migrating an upstream container image family with fundamentally different volume structures, such as switching qBittorrent to Hotio `ghcr.io/hotio/qbittorrent`, `_docker_volumes_default` is intentionally adapted in `localhost.yml`).*
-2. **Docker Debugging Callback & Tasks (`docker_debug`, `mod_resources_tasks_path`)**:
-   - **Automatic Callback Plugin**: `/opt/saltbox_mod/callback_plugins/docker_debug.py` is registered in `ansible.cfg`. Whenever `debug_docker_create_container: true` is set in `localhost.yml`, the callback automatically intercepts `Create Docker Container` tasks across all services without needing any manual include lines in individual roles. It outputs container name, image, networks, ports, indexed volumes, and proactively flags any duplicate destination mount points.
-   - **Explicit Debug Task**: `/opt/saltbox_mod/resources/tasks/docker/debug_docker_create_container.yml` wraps diagnostic tasks in a single conditional block (`when: debug_docker_create_container | default(false) | bool`), skipping completely with zero overhead when disabled.
+2. **Docker Debugging Tasks (`mod_resources_tasks_path`)**:
+   `localhost.yml` defines `debug_docker_create_container: true` and `mod_resources_tasks_path: "/opt/saltbox_mod/resources/tasks"`. Roles include `{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml` directly before creating the container. All diagnostic tasks are wrapped in a single conditional block (`when: debug_docker_create_container | default(false) | bool`), skipping completely with zero overhead when disabled.
 
 3. **Dynamic `_var_prefix` Resolution**:
    Saltbox sets `_var_prefix` to the active role name dynamically during execution. In `localhost.yml`, referencing `app_log_dir` or `app_metadata_dir` evaluates automatically to that specific role's directory.
@@ -248,6 +247,9 @@ All custom variable overrides belong in:
 
 - name: Create directories
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
+
+- name: Debug Docker container creation
+  ansible.builtin.include_tasks: "{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml"
 
 - name: Create Docker container
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"
