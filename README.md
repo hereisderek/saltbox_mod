@@ -117,3 +117,18 @@ newrole_docker_volumes_default:
 ```
 
 Proceed to step 4.
+
+---
+
+## Custom Services Catalog
+
+Custom applications maintained in this repository include:
+
+| Service | Tag | Description | Detailed Technical Docs |
+|---|---|---|---|
+| **Dockge** | `dockge` | Self-hosted Docker Compose stack manager with web UI | [docs/dockge.md](docs/dockge.md) |
+| **Music-Tag-Web** | `music-tag-web` | Web-based audio metadata and ID3 tagging editor | [docs/music_tag_web.md](docs/music_tag_web.md) |
+| **Simple SQ Music Plus** | `simple_sq_music_plus` | Music streaming and management application | [docs/simple_sq_music_plus.md](docs/simple_sq_music_plus.md) |
+
+> For comprehensive guidelines on authoring roles, workspace boundaries, and media library storage conventions, consult [AGENTS.md](AGENTS.md).
+
