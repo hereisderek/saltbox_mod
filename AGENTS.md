@@ -75,14 +75,17 @@ All services requiring access to the media library on this host must adhere to t
 
 1. **Tier 1 (SSD Cache)**: `/mnt/local/Media/` — Ingest point for downloading clients (`qbittorrent`, `sabnzbd`). High I/O performance prevents thrashing mechanical disks during intensive downloads.
 2. **Tier 2 (HDD Warehouse)**: `/mnt/remote/media/Media/` — Bulk permanent storage (`Movies/`, `TV/`, `Music/`, `Youtube/`, `photos/`, `Recording/`).
-3. **MergerFS / UnionFS**: `/mnt/unionfs/Media/` — Unified filesystem merging Tier 1 and Tier 2. Read-oriented media applications (Emby, Jellyfin, Music-Tag-Web) should mount `/mnt/unionfs/Media/` or its subfolders.
+3. **MergerFS / UnionFS & Write Policy**:
+   - Mount path: `/mnt/unionfs/Media/` — Unified filesystem merging Tier 1 and Tier 2.
+   - **Write Policy (`custom_mount_branch: "/mnt/remote/media=NC:"`)**: Configured with `=NC` (No Create), ensuring writes through `/mnt/unionfs/` never create files directly on mechanical storage and always land on the local SSD tier.
+   - **Recycle Bin Pattern**: Arr applications map `/mnt/unionfs/Media/deleted/{TV,Movies,Music}` into `_paths_folders_list_custom` to prevent accidental unrecoverable media deletion.
 4. **High-Speed Cache, Logs & Metadata (`/media/cache`)**:
    - Fast application cache: `/media/cache/cache/{{ _var_prefix }}` (`{{ app_cache_dir }}`)
    - Application logs: `/media/cache/logs/{{ _var_prefix }}` (`{{ app_log_dir }}`)
    - Artwork & metadata: `/media/cache/metadata/{{ _var_prefix }}` (`{{ app_metadata_dir }}`)
-   - Persistent app data: `/media/data/app/{{ _var_prefix }}` (`{{ app_data_dir }}`)
-   - SSD state backups: `/mnt/backups/ssd-data/app/{{ _var_prefix }}` (`{{ ssd_app_backup_dir }}`)
-   - HDD archive backups: `/mnt/remote/media/Backups/{{ _var_prefix }}` (`{{ app_backup_dir }}`)
+   - Persistent app data: `/media/data/app/{{ _var_prefix }}` (`{{ app_data_dir }}`) — e.g. Paperless-ngx
+   - SSD state backups: `/mnt/backups/ssd-data/app/{{ _var_prefix }}` (`{{ ssd_app_backup_dir }}`) — e.g. Nextcloud data
+   - HDD archive backups: `/mnt/remote/media/Backups/{{ _var_prefix }}` (`{{ app_backup_dir }}`) — e.g. Duplicati
 5. **Container AppData Root**: `/opt/<app_name>` (`{{ server_appdata_path }}/<app_name>`).
 6. **Data Movement Engine**: Automated script at `/opt/saltbox_mod/scripts/saltbox_sync.sh` (systemd timer `saltbox-sync.timer` or manual `-f`).
 
@@ -104,9 +107,13 @@ All custom variable overrides belong in:
    - `<role>_role_paths_folders_list_custom`
    - `<role>_role_docker_ports_custom`
    - `<role>_role_docker_devices_custom`
-2. **Dynamic `_var_prefix` Resolution**:
+   - `<role>_role_docker_commands_custom`
+   *(Exception: When migrating an upstream container image family with fundamentally different volume structures, such as switching qBittorrent to Hotio `ghcr.io/hotio/qbittorrent`, `_docker_volumes_default` is intentionally adapted in `localhost.yml`).*
+2. **Debugging Tasks (`mod_resources_tasks_path`)**:
+   `localhost.yml` defines `debug_docker_create_container: true` and `mod_resources_tasks_path: "/opt/saltbox_mod/resources/tasks"`. Custom roles can include `{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml` during task runs to dump container creation parameters.
+3. **Dynamic `_var_prefix` Resolution**:
    Saltbox sets `_var_prefix` to the active role name dynamically during execution. In `localhost.yml`, referencing `app_log_dir` or `app_metadata_dir` evaluates automatically to that specific role's directory.
-3. **Precedence Hierarchy**:
+4. **Precedence Hierarchy**:
    1. Instance-Scoped: `<instance_name>_<setting>`
    2. Role-Scoped: `<role_name>_role_<setting>`
    3. Inventory Host Variables (`localhost.yml`)

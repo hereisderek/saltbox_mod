@@ -1,6 +1,6 @@
 # 01. Architecture & Storage Tiering
 
-This document details the system infrastructure, storage hierarchy, filesystem layouts, and path conventions implemented on this host.
+This document details the system infrastructure, storage hierarchy, filesystem layouts, and path conventions implemented on this host based on the live setup in `/srv/git/saltbox/inventories/host_vars/localhost.yml`.
 
 ---
 
@@ -10,15 +10,16 @@ This document details the system infrastructure, storage hierarchy, filesystem l
 - **Container Engine**: Docker CE with `overlay2` storage driver.
 - **Docker Data Root**: Custom mapped to `/media/data/docker` (configured via `docker_config_custom` in inventory).
 - **IPv6 Networking**: Enabled (`docker_ipv6: true`).
+- **Startup Delays**: `docker_containers_startup_delay: 30`, `docker_service_sleep: 30` to prevent load spikes during boot.
 - **Core Network**: Docker bridge network named `saltbox` (`docker_networks_name_common`). All web-facing containers attach to this network to communicate with Traefik.
+- **Debugging Tasks**: `debug_docker_create_container: true` using `mod_resources_tasks_path: "/opt/saltbox_mod/resources/tasks"`.
 - **GPU Acceleration**:
   - Intel QuickSync / VA-API device node: `/dev/dri/renderD128` (and `/dev/dri`).
-  - Passed to containers like Emby, Immich, Restreamer.
-  - Transcoding groups: Video (`vgid`), Render (`rgid`), Default (`gid`), mapped via `emby_role_docker_envs_custom` (`GIDLIST: "{{ gid }},{{ vgid }},{{ rgid }}"`) or `immich_role_docker_groups`.
+  - Transcoding groups: Video (`vgid`), Render (`rgid`), Default (`gid`), mapped via `emby_role_docker_envs_custom` (`GIDLIST: "{{ gid }},{{ vgid }},{{ rgid }}"`), `immich_role_docker_groups`, or `restreamer_docker_groups`.
 
 ---
 
-## 2. Storage Tiering (Two-Tier Model)
+## 2. Storage Tiering (Two-Tier Model) & MergerFS Policies
 
 The host operates on a two-tier storage model without reliance on remote cloud drives:
 
@@ -47,8 +48,16 @@ The host operates on a two-tier storage model without reliance on remote cloud d
  └────────────────────────┘              └────────────────────────┘
 ```
 
-### Storage Breakdown
+### MergerFS Write Policy (`custom_mount_branch`)
+In `localhost.yml`:
+```yaml
+custom_mount_branch: "/mnt/remote/media=NC:"
+```
+- The `=NC` policy (**No Create**) instructs MergerFS that writes through `/mnt/unionfs/Media/` must **never** create new files directly on `/mnt/remote/media`.
+- Instead, all newly created files fall through to the Read/Write local SSD branch (`/mnt/local=RW:`).
+- Once media finishes downloading and unpacks, the `saltbox_sync.sh` engine moves aged files (>90 minutes) from Tier 1 to Tier 2.
 
+### Storage Breakdown
 1. **Tier 1 (SSD Cache)**:
    - Location: `/mnt/local/Media/`
    - Purpose: Ingest point for downloading clients (`qbittorrent`, `sabnzbd`). High I/O performance ensures torrent seeding and file extraction do not thrash mechanical drives.
@@ -58,18 +67,18 @@ The host operates on a two-tier storage model without reliance on remote cloud d
      - `Movies/`: Archival movie library
      - `TV/`: Archival television library
      - `Music/`: Long-term music files
-     - `Youtube/`: Video archive from `ytdl-sub` and `youtubedl`
-     - `photos/`: Stored under `/mnt/remote/media/photos/` for Immich
-     - `Recording/`: NVR recordings (e.g. Scrypted)
-     - `Backups/`: Central long-term backup repository (`root_backup_dir`)
+     - `Youtube/`: Video archive managed by `ytdl-sub` and `youtubedl` (`/mnt/remote/media/Media/Youtube/{{ ytdl_sub_name }}`)
+     - `photos/`: Immich photo archives (`/mnt/remote/media/photos/immich` and `/mnt/remote/media/photos/immich-external-library`)
+     - `Recording/`: NVR recordings managed by Scrypted (`/mnt/remote/media/Media/Recording/scrypted`)
+     - `Backups/`: Central long-term backup repository (`root_backup_dir: /mnt/remote/media/Backups`)
 3. **MergerFS / UnionFS**:
    - Location: `/mnt/unionfs/Media/`
-   - Branches: Merges `/mnt/local` (Read/Write) and `/mnt/remote/media` (Non-CoW/Archive).
    - Serves unified media paths to media players and servers (e.g., Emby, Jellyfin, Music-Tag-Web).
+   - Recycle Bin Folders: `/mnt/unionfs/Media/deleted/{TV,Movies,Music}` are mapped in Arr apps to prevent immediate unrecoverable deletions.
 
 ---
 
-## 3. Host Dynamic Path Conventions
+## 3. Host Dynamic Path Hierarchy
 
 The inventory file (`/srv/git/saltbox/inventories/host_vars/localhost.yml`) defines a standardized hierarchy of high-speed NVMe/SSD paths:
 
@@ -94,53 +103,26 @@ app_backup_dir: "{{ root_backup_dir }}/{{ _var_prefix }}"
 shared_metadata_dir: "{{ metadata_dir }}/shared"
 ```
 
-### How `_var_prefix` Works
-When Saltbox runs `create_docker_container.yml`, it dynamically defines:
-```yaml
-_var_prefix: "{{ var_prefix if (var_prefix is defined) else role_name }}"
-```
-Because Jinja resolves variables lazily during task execution, any reference to `app_log_dir` or `app_metadata_dir` in `localhost.yml` automatically evaluates to that application's directory name!
-- For `sonarr`: resolves to `/media/cache/logs/sonarr` and `/media/cache/metadata/sonarr`.
-- For `radarr`: resolves to `/media/cache/logs/radarr` and `/media/cache/metadata/radarr`.
-- For `emby`: resolves to `/media/cache/logs/emby` and `/media/cache/metadata/emby`.
+### Specific Host Storage Assignments
+- **Paperless-ngx**: Persistent database and document archive stored on high-speed NVMe: `paperless_ngx_role_paths_location: "{{ app_data_dir }}"` (`/media/data/app/paperless_ngx`).
+- **Nextcloud**: Data files stored on dedicated SSD backup storage: `nextcloud_role_file_location: "{{ ssd_root_backup_dir }}/nextcloud"` (`/mnt/backups/ssd-data/nextcloud`).
+- **Duplicati**: Backs up read-only `/srv` and `/opt` into `{{ root_backup_dir }}/duplicati` (`/mnt/remote/media/Backups/duplicati`).
+- **Note on `log_path`**: Ansible global log cannot be placed on certain FUSE/network mounts; `localhost.yml` keeps `# log_path: "/media/cache/saltbox.log"` commented out, leaving logging to `./saltbox_mod.log` as defined in `ansible.cfg`.
 
 ---
 
-## 4. Application Configuration Paths (`/opt/<app>`)
+## 4. Summary of Key Host Directories
 
-All container persistent configuration directories (`/config`) are rooted under `/opt/`:
-- `/opt/sonarr`
-- `/opt/radarr`
-- `/opt/qbittorrent`
-- `/opt/emby`
-- `/opt/traefik`
-- `/opt/authelia`
-- `/opt/immich`
-- `/opt/dockge`
-- `/opt/stacks` (Dockge compose stacks)
-
-### Directory Creation Policy
-In custom Saltbox mod roles, directories MUST be declared in `<role>_role_paths_folders_list` and created via:
-```yaml
-- name: Create directories
-  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
-```
-Do not invoke raw `mkdir` shell commands in Ansible roles.
-
----
-
-## 5. Summary of Key Host Directories
-
-| Directory Path | Filesystem / Type | Purpose |
+| Directory Path | Filesystem / Disk Type | Purpose |
 |---|---|---|
-| `/opt/<app>` | NVMe / Host OS | App persistent config, databases, settings |
+| `/opt/<app>` | NVMe (Host OS) | App persistent configs, sqlite databases, settings |
 | `/opt/saltbox_mod` | Git repository | Custom Ansible roles, playbooks, local sync scripts |
-| `/srv/git/saltbox` | Git repository | Core upstream Saltbox framework and inventory |
+| `/srv/git/saltbox` | Git repository | Upstream Saltbox framework and inventory |
 | `/opt/sandbox` | Git repository | Community Sandbox roles repository |
 | `/mnt/local/Media` | SSD (Tier 1) | Active downloading, unzipping, rapid ingest |
 | `/mnt/remote/media/Media` | HDD (Tier 2) | Permanent media archive |
-| `/mnt/unionfs/Media` | MergerFS | Unified view of Tier 1 + Tier 2 |
+| `/mnt/unionfs/Media` | MergerFS (`=NC`) | Unified media view; writes fall back to Tier 1 |
 | `/media/cache` | High-speed SSD | Transcoding cache, metadata, app log sinks |
 | `/media/data` | High-speed SSD | Persistent app data (Paperless, Docker root) |
-| `/mnt/backups/ssd-data` | Dedicated Backup Disk | Fast SSD-based app state backups |
-| `/mnt/remote/media/Backups` | Dedicated Backup Disk | Long-term comprehensive backups (Duplicati) |
+| `/mnt/backups/ssd-data` | Dedicated Fast Disk | SSD state backups & Nextcloud data store |
+| `/mnt/remote/media/Backups` | Dedicated Archive Disk | Long-term comprehensive backups (Duplicati) |
