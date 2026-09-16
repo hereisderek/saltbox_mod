@@ -24,6 +24,19 @@ Whenever a custom service is created or updated in `saltbox_mod`:
 1. **README Entry**: Add a concise introduction and install tag in [`/opt/saltbox_mod/README.md`](file:///opt/saltbox_mod/README.md).
 2. **Dedicated Technical Doc**: Create a dedicated, in-depth technical markdown document under [`/opt/saltbox_mod/docs/<service>.md`](file:///opt/saltbox_mod/docs/) covering upstream source, internal port mappings, volume contracts, Traefik/Authelia configuration, and inventory override examples.
 
+### D. Git Commit & Push Policy
+> [!CAUTION]
+> **DO NOT COMMIT OR PUSH UNLESS EXPLICITLY ASKED BY THE USER.**
+> Never run `git commit` or `git push` autonomously. All code, configuration, and documentation edits must remain as local working changes for the user to inspect and test. Only commit or push when the user explicitly instructs you to do so.
+
+### E. Safe Experimentation & Testing with Helloworld
+> [!IMPORTANT]
+> **AVOID EXPERIMENTING ON LIVE / PRODUCTION SERVICES.**
+> When testing new Ansible role patterns, debug hooks, template resolution logic, or container tasks:
+> 1. Use [`roles/helloworld`](file:///opt/saltbox_mod/roles/helloworld) as the sandbox / testbed.
+> 2. Run and verify the changes against `helloworld` (`sb install mod-helloworld` or `ansible-playbook /opt/saltbox_mod/saltbox_mod.yml --tags helloworld`).
+> 3. Once proven to work correctly without side effects, apply the verified pattern to the target service.
+
 ---
 
 ## 2. Environment & Architecture Overview
