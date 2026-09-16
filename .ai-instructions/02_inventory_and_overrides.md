@@ -179,3 +179,25 @@ Whenever you edit `/srv/git/saltbox/inventories/host_vars/localhost.yml` *(with 
 - For core Saltbox apps: `sb install <app_name>`
 - For Sandbox apps: `sb install sandbox-<app_name>`
 - For Saltbox Mod apps: `sb install mod-<app_name>` or `sudo ansible-playbook /opt/saltbox_mod/saltbox_mod.yml --tags <app_name>`
+
+---
+
+## 7. Troubleshooting: Volume Concatenation & Duplicate Mount Errors
+
+### Symptom & Ansible Failure
+```
+[ERROR]: Task failed: Module failed: The mount point "/server/music" appears twice in the volumes option
+fatal: [localhost]: FAILED! => {"attempts": 2, "changed": false, "msg": "The mount point \"/server/music\" appears twice in the volumes option"}
+```
+
+### Root Cause
+Saltbox assembles container volumes using list concatenation:
+```yaml
+_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default') + lookup('role_var', '_docker_volumes_custom') }}"
+```
+If a mount destination (such as `/server/music` or `/server/logs`) exists in the role's `defaults/main.yml` and is also defined in `localhost.yml` under `<role>_role_docker_volumes_custom`, Docker receives two entries for the identical container path, resulting in a fatal deployment abort.
+
+### Solution
+- Ensure the role's `_docker_volumes_default` contains only required, non-overrideable base paths (e.g., `/server/data` or `/config`).
+- All media libraries, log directories, and cache folders must be defined solely via `_docker_volumes_custom` in `localhost.yml`.
+

@@ -200,3 +200,21 @@ sb install mod-<app_name>
 # or
 sudo ansible-playbook /opt/saltbox_mod/saltbox_mod.yml --tags <app_name>
 ```
+
+---
+
+## 6. Critical Volume Design Rule: Preventing Duplicate Mount Points
+
+Saltbox merges volume lists with addition:
+```yaml
+_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default') + lookup('role_var', '_docker_volumes_custom') }}"
+```
+If an internal container destination path (e.g. `/server/music` or `/media`) is defined in `_docker_volumes_default` AND specified in `localhost.yml` under `<role>_role_docker_volumes_custom`, Docker will throw a duplicate mount fatal error:
+```
+fatal: [localhost]: FAILED! => {"attempts": 2, "changed": false, "msg": "The mount point \"/server/music\" appears twice in the volumes option"}
+```
+
+**Rule of Thumb**:
+- Keep `_docker_volumes_default` strictly minimal (usually only the `/config` or `/data` directory).
+- **Never** add default volume mounts for media libraries, log folders, or cache directories in `defaults/main.yml`. Let the administrator map them via `_docker_volumes_custom` in `localhost.yml`.
+

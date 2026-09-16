@@ -64,3 +64,47 @@ To view container logs or inspect state:
 docker logs -f lxserver
 docker ps --filter "name=lxserver"
 ```
+
+---
+
+## 5. Troubleshooting & Debug Log Reference
+
+### Issue: Duplicate Container Mount Point Collision (`/server/music`)
+
+During installation via `sb install mod-lxserver`, the task fails with:
+
+```text
+FAILED - RETRYING: [localhost]: lxserver : Resources | Tasks | Docker | Create Docker Container | Create Docker Container (1 retries left).
+FAILED - RETRYING: [localhost]: lxserver : Resources | Tasks | Docker | Create Docker Container | Create Docker Container (0 retries left).
+[ERROR]: Task failed: Module failed: The mount point "/server/music" appears twice in the volumes option
+Origin: /srv/git/saltbox/resources/tasks/docker/create_docker_container.yml:237:3
+
+235   when: ('container:' in _docker_vars._docker_network_mode)
+236
+237 - name: Resources | Tasks | Docker | Create Docker Container | Create Docker Container # noqa args[module]
+      ^ column 3
+
+fatal: [localhost]: FAILED! => {"attempts": 2, "changed": false, "msg": "The mount point \"/server/music\" appears twice in the volumes option"}
+```
+
+#### Cause
+Saltbox's Docker resource module evaluates volumes by concatenating defaults and overrides:
+```yaml
+_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default') + lookup('role_var', '_docker_volumes_custom') }}"
+```
+If `/server/music` is declared inside `roles/lxserver/defaults/main.yml` in `lxserver_role_docker_volumes_default` AND also defined in `localhost.yml` in `lxserver_role_docker_volumes_custom`, Docker receives two entries targeting container destination `/server/music`, causing `community.docker.docker_container` to abort execution.
+
+#### Resolution
+1. Keep `lxserver_role_docker_volumes_default` strictly confined to essential baseline storage:
+   ```yaml
+   lxserver_role_docker_volumes_default:
+     - "{{ lxserver_role_paths_location }}/data:/server/data"
+   ```
+2. Map host music libraries, logs, and caches exclusively via `lxserver_role_docker_volumes_custom` in `/srv/git/saltbox/inventories/host_vars/localhost.yml`:
+   ```yaml
+   lxserver_role_docker_volumes_custom:
+     - "/mnt/unionfs/Media/Music/library:/server/music:rw"
+     - "{{ app_log_dir }}:/server/logs"
+     - "{{ app_cache_dir }}:/server/cache"
+   ```
+

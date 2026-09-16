@@ -13,3 +13,5 @@ This role sets up LX Music Sync Server & WebPlayer (Enhanced Edition), which pro
 2. **Subdomain**: Routes automatically under `lxserver.<yourdomain.tld>` via Traefik.
 3. **Authentication**: Secured behind Authelia SSO via `traefik_default_sso_middleware`.
 4. **Music Directory**: Container internal path is `/server/music`. To map the host's unified media library, configure `lxserver_role_docker_volumes_custom` in `localhost.yml`.
+5. **Volume Architecture**: Do NOT put `/server/music`, `/server/logs`, or `/server/cache` into `lxserver_role_docker_volumes_default` to avoid duplicate mount collisions with `lxserver_role_docker_volumes_custom`.
+

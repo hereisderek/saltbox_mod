@@ -269,6 +269,21 @@ If an application requires PostgreSQL, MariaDB, or Redis, include the existing u
    sudo ansible-playbook /opt/saltbox_mod/saltbox_mod.yml --tags <app_name>
    ```
 
+### G. Critical Gotcha: Preventing Duplicate Container Mount Points
+Saltbox combines container volume mounts using list concatenation:
+```yaml
+_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default') + lookup('role_var', '_docker_volumes_custom') }}"
+```
+If a destination path (e.g., `/server/music`) is defined in both `<role>_role_docker_volumes_default` and overridden in `localhost.yml` under `<role>_role_docker_volumes_custom`, Docker's container creation task fails with:
+```
+[ERROR]: Task failed: Module failed: The mount point "/server/music" appears twice in the volumes option
+fatal: [localhost]: FAILED! => {"attempts": 2, "changed": false, "msg": "The mount point \"/server/music\" appears twice in the volumes option"}
+```
+**Architectural Rule**:
+- In `defaults/main.yml`, `<role>_role_docker_volumes_default` must **only** mount non-customizable baseline paths (e.g., `/server/data` or `/config`).
+- Do **not** pre-populate media libraries (`/server/music`), log paths (`/server/logs`), or cache paths (`/server/cache`) in `_docker_volumes_default` if they are meant to be mapped to the host's unified media library or system paths.
+- Inject all host media mappings and directory redirects cleanly via `<role>_role_docker_volumes_custom` in `localhost.yml`.
+
 ---
 
 ## 6. Reverse Proxy, Authelia & Container Healthchecks

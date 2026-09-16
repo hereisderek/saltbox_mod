@@ -72,9 +72,6 @@ lxserver_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='
 # Volumes
 lxserver_role_docker_volumes_default:
   - "{{ lxserver_role_paths_location }}/data:/server/data"
-  - "{{ lxserver_role_paths_location }}/logs:/server/logs"
-  - "{{ lxserver_role_paths_location }}/cache:/server/cache"
-  - "{{ lxserver_role_paths_location }}/music:/server/music"
 lxserver_role_docker_volumes_custom: []
 lxserver_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='lxserver') + lookup('role_var', '_docker_volumes_custom', role='lxserver') }}"
 
