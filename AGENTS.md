@@ -4,33 +4,50 @@ This document is the **single source of truth and authoritative instruction guid
 
 ---
 
-## 1. Core Operating Principles & Boundaries
+## 1. Core Operating Principles & Governance
 
-### A. Workspace Boundary & Upstream Hygiene
-- **Upstream Saltbox (`/srv/git/saltbox`)**: This repository tracks upstream Saltbox. It must remain pristine and clean so that upstream updates can be pulled without conflicts.
-- **Custom Codebase (`/opt/saltbox_mod`)**: **ALL** custom Ansible roles, playbooks (`saltbox_mod.yml`), helper scripts (`scripts/`), and documentation (`docs/`) must reside within `/opt/saltbox_mod`. Never place custom application roles or non-upstream scripts directly inside `/srv/git/saltbox`.
+### A. Workspace Boundaries & Upstream Hygiene
+- **Upstream Saltbox (`/srv/git/saltbox`)**: Tracks the upstream Saltbox repository. It must remain clean and pristine so that upstream updates can be pulled without conflicts.
+- **Custom Codebase (`/opt/saltbox_mod`)**: **ALL** custom Ansible roles, playbooks (`saltbox_mod.yml`), helper scripts (`scripts/`), and technical service documentation (`docs/`) must reside within `/opt/saltbox_mod`. Never place custom application roles or non-upstream scripts directly inside `/srv/git/saltbox`.
 - **CRITICAL APPROVAL POLICY**:
   > [!CAUTION]
   > Any changes to `/srv/git/saltbox/inventories/host_vars/localhost.yml` and any configuration files under `/srv/git/saltbox` (which are gitignored) **REQUIRE EXPLICIT USER APPROVAL** before being modified. Do not edit these files autonomously without presenting the planned modification and obtaining user consent.
 
 ### B. General Templates vs. Machine-Specific Overrides
 - **Roles & Templates Must Be General**:
-  Role defaults (`defaults/main.yml`), tasks (`tasks/main.yml`), and templates (`templates/*.j2`) inside `/opt/saltbox_mod/roles/` must remain **generic, clean, and portable**. They should use standard upstream defaults (e.g., standard internal ports, default `/config` volume paths, standard environment variables).
+  Role defaults (`defaults/main.yml`), tasks (`tasks/main.yml`), and templates (`templates/*.j2`) inside `/opt/saltbox_mod/roles/` must remain **generic, clean, and portable**. They must use standard upstream defaults (e.g., standard internal ports, default `/config` volume paths, standard environment variables).
 - **User-Specific Customization Belongs in Inventory**:
   **Never** hardcode machine-specific `/mnt/...` storage paths, host user tokens, or personal directory layouts into role defaults or tasks. Any adaptation to the user's specific host layout must be configured via variable overrides in `/srv/git/saltbox/inventories/host_vars/localhost.yml` (using `*_role_docker_volumes_custom`, `*_role_paths_folders_list_custom`, `*_role_docker_envs_custom`, etc.).
 
-### C. Documentation Requirement for Custom Services
-Whenever a custom service is added or updated in `saltbox_mod`:
+### C. Documentation Workflow for Custom Services
+Whenever a custom service is created or updated in `saltbox_mod`:
 1. **README Entry**: Add a concise introduction and install tag in [`/opt/saltbox_mod/README.md`](file:///opt/saltbox_mod/README.md).
 2. **Dedicated Technical Doc**: Create a dedicated, in-depth technical markdown document under [`/opt/saltbox_mod/docs/<service>.md`](file:///opt/saltbox_mod/docs/) covering upstream source, internal port mappings, volume contracts, Traefik/Authelia configuration, and inventory override examples.
 
 ---
 
-## 2. Media Library `/mnt` & Cache/Log Standards
+## 2. Environment & Architecture Overview
 
-All services requiring access to the media library on this host must adhere to the standardized two-tier storage and cache hierarchy:
+- **Host Virtualization**: Ubuntu OS running inside an LXC container on Proxmox VE (PVE).
+- **Primary Orchestration**: [Saltbox](https://docs.saltbox.dev/) (upstream repository at `/srv/git/saltbox`), managing containerized applications with Ansible and Docker.
+- **Docker Engine**: Docker CE with `overlay2` storage driver and custom data root at `/media/data/docker`. IPv6 enabled (`docker_ipv6: true`).
+- **Role Ecosystem**:
+  - **Upstream Saltbox**: `/srv/git/saltbox/roles` (core media stack, infrastructure: Traefik, Authelia, Cloudflare DNS).
+  - **Sandbox (Community)**: `/opt/sandbox/roles` (community-contributed roles).
+  - **Saltbox Mod (Custom/Local)**: `/opt/saltbox_mod/roles` (user-created custom roles and modifications maintained in this checkout, author: `hereisderek`).
+- **Ansible Configuration (`/opt/saltbox_mod/ansible.cfg`)**:
+  - `inventory = /srv/git/saltbox/inventories/local`
+  - `roles_path = roles:/srv/git/saltbox/roles:/srv/git/saltbox/resources/roles:/opt/sandbox/roles`
+  - `filter_plugins`, `lookup_plugins`, `library` linked directly to `/srv/git/saltbox`.
+  - Python interpreter: `/srv/ansible/venv/bin/python3`.
 
-### Storage Paths
+---
+
+## 3. Media Library `/mnt` & Storage Tiering Standards
+
+All services requiring access to the media library on this host must adhere to the standardized two-tier storage and high-speed cache hierarchy:
+
+### Storage Architecture
 ```
 [ Ingest / Torrent Downloads ]
                │
@@ -56,9 +73,9 @@ All services requiring access to the media library on this host must adhere to t
    └───────────────────────┘               └───────────────────────┘
 ```
 
-1. **Tier 1 (SSD Cache)**: `/mnt/local/Media/` — Ingest point for downloading clients (`qbittorrent`, `sabnzbd`). High I/O performance avoids mechanical drive bottleneck.
+1. **Tier 1 (SSD Cache)**: `/mnt/local/Media/` — Ingest point for downloading clients (`qbittorrent`, `sabnzbd`). High I/O performance prevents thrashing mechanical disks during intensive downloads.
 2. **Tier 2 (HDD Warehouse)**: `/mnt/remote/media/Media/` — Bulk permanent storage (`Movies/`, `TV/`, `Music/`, `Youtube/`, `photos/`, `Recording/`).
-3. **MergerFS / UnionFS**: `/mnt/unionfs/Media/` — Unified filesystem merging Tier 1 and Tier 2. Read-oriented media apps (Emby, Jellyfin, Music-Tag-Web) should mount `/mnt/unionfs/Media/` or its subfolders.
+3. **MergerFS / UnionFS**: `/mnt/unionfs/Media/` — Unified filesystem merging Tier 1 and Tier 2. Read-oriented media applications (Emby, Jellyfin, Music-Tag-Web) should mount `/mnt/unionfs/Media/` or its subfolders.
 4. **High-Speed Cache, Logs & Metadata (`/media/cache`)**:
    - Fast application cache: `/media/cache/cache/{{ _var_prefix }}` (`{{ app_cache_dir }}`)
    - Application logs: `/media/cache/logs/{{ _var_prefix }}` (`{{ app_log_dir }}`)
@@ -67,16 +84,17 @@ All services requiring access to the media library on this host must adhere to t
    - SSD state backups: `/mnt/backups/ssd-data/app/{{ _var_prefix }}` (`{{ ssd_app_backup_dir }}`)
    - HDD archive backups: `/mnt/remote/media/Backups/{{ _var_prefix }}` (`{{ app_backup_dir }}`)
 5. **Container AppData Root**: `/opt/<app_name>` (`{{ server_appdata_path }}/<app_name>`).
+6. **Data Movement Engine**: Automated script at `/opt/saltbox_mod/scripts/saltbox_sync.sh` (systemd timer `saltbox-sync.timer` or manual `-f`).
 
 ---
 
-## 3. Inventory & Override Conventions
+## 4. Inventory & Variable Override Conventions
 
 All custom variable overrides belong in:
 ```filepath
 /srv/git/saltbox/inventories/host_vars/localhost.yml
 ```
-*(CLI shortcut: `sb edit inventory`)*.
+*(CLI shortcut: `sb edit inventory` — Requires explicit approval before modifying)*.
 
 ### Rules for Variables:
 1. **Never override `_default` variables directly**:
@@ -87,7 +105,7 @@ All custom variable overrides belong in:
    - `<role>_role_docker_ports_custom`
    - `<role>_role_docker_devices_custom`
 2. **Dynamic `_var_prefix` Resolution**:
-   Saltbox sets `_var_prefix` to the active role name dynamically during execution. In `localhost.yml`, referencing `app_log_dir` or `app_metadata_dir` evaluates automatically to that role's subdirectory.
+   Saltbox sets `_var_prefix` to the active role name dynamically during execution. In `localhost.yml`, referencing `app_log_dir` or `app_metadata_dir` evaluates automatically to that specific role's directory.
 3. **Precedence Hierarchy**:
    1. Instance-Scoped: `<instance_name>_<setting>`
    2. Role-Scoped: `<role_name>_role_<setting>`
@@ -97,7 +115,7 @@ All custom variable overrides belong in:
 
 ---
 
-## 4. Role Authoring Standard in `/opt/saltbox_mod`
+## 5. Role Authoring Standard in `/opt/saltbox_mod`
 
 ### A. Role File Hierarchy
 ```
@@ -109,7 +127,14 @@ All custom variable overrides belong in:
 └── <role_name>_ai_instruction.md       # Quick AI instruction note
 ```
 
-### B. Generic Blueprint for `defaults/main.yml`
+### B. Conventions & Naming Rules
+- Use `snake_case` for role directories, Ansible role names, and variable prefixes.
+- Use lowercase `kebab-case` for literal Ansible tags in `saltbox_mod.yml`.
+- Check both Saltbox and Sandbox to prevent role or tag collisions.
+- Every `lookup('role_var', ...)` in defaults must specify an explicit `role='<role_name>'` target.
+- In assertions, prefer boolean Jinja tests (`is search(...)`, `is match(...)`) over filters that return strings or `none`.
+
+### C. Generic Blueprint for `defaults/main.yml`
 ```yaml
 ---
 ##################################################################################
@@ -199,7 +224,7 @@ All custom variable overrides belong in:
 <role_name>_role_docker_state: started
 ```
 
-### C. Blueprint for `tasks/main.yml`
+### D. Blueprint for `tasks/main.yml`
 ```yaml
 ---
 - name: Add DNS record
@@ -219,10 +244,10 @@ All custom variable overrides belong in:
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"
 ```
 
-### D. Multi-Container Stacks
+### E. Multi-Container Stacks
 If an application requires PostgreSQL, MariaDB, or Redis, include the existing upstream Saltbox role via `ansible.builtin.include_role` with a dedicated instance name (e.g. `postgres_instances: ["{{ <role_name>_name }}-postgres"]`). Do not create ad-hoc database containers.
 
-### E. Registering and Deploying
+### F. Registering and Deploying
 1. Add to [`/opt/saltbox_mod/saltbox_mod.yml`](file:///opt/saltbox_mod/saltbox_mod.yml):
    ```yaml
    - { role: <app_name>, tags: ['<app_name>'] }
@@ -239,11 +264,16 @@ If an application requires PostgreSQL, MariaDB, or Redis, include the existing u
 
 ---
 
-## 5. Reverse Proxy, Authelia & Container Healthchecks
+## 6. Reverse Proxy, Authelia & Container Healthchecks
 
-- **Traefik Reverse Proxy**: Traefik labels are automatically generated by `create_docker_container.yml` when `<role>_role_traefik_enabled: true`.
+- **Traefik Reverse Proxy**: Traefik labels are automatically generated by `create_docker_container.yml` when `<role>_role_traefik_enabled: true`. Entrypoints: `web` (80 -> redirect to HTTPS) and `websecure` (443).
 - **Authelia SSO Middleware**: Bound via `<role>_role_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"`. To disable SSO for public access, set to `""`.
-- **Container Healthchecks**: Injected via `localhost.yml`:
+- **API Router Bypass**: For apps requiring unauthenticated webhook/API endpoints:
+  ```yaml
+  <role>_role_traefik_api_enabled: true
+  <role>_role_traefik_api_endpoint: "PathPrefix(`/api`) || PathPrefix(`/ping`)"
+  ```
+- **Container Healthchecks**: Injected via `localhost.yml` ([docs](https://docs.saltbox.dev/advanced/healthchecks/)):
   ```yaml
   <role_name>_docker_healthcheck:
     test: ["CMD", "curl", "--fail", "http://localhost:{{ <role_name>_web_port }}"]
@@ -255,7 +285,53 @@ If an application requires PostgreSQL, MariaDB, or Redis, include the existing u
 
 ---
 
-## 6. Official Documentation References
+## 7. Adding Non-Role Containers (Docker Compose, Dockge & CLI)
+
+According to official Saltbox docs ([Your Own Containers](https://docs.saltbox.dev/advanced/your-own-containers/)):
+
+1. **Docker Compose**:
+   - Best for standalone web apps before turning into a full role.
+   - Standard directory: `/opt/<app_name>/compose.yaml`.
+   - Template generator:
+     ```bash
+     sb install generate-traefik-template
+     ```
+   - Docker network must attach to `saltbox` (`external: true`).
+2. **Dockge (Port 5001)**:
+   - Deployed at port `5001` via `sb install mod-dockge`. Stacks directory at `/opt/stacks/<stack_name>/compose.yaml`.
+   - Managed securely behind Authelia SSO.
+3. **Docker CLI / Shell Functions**:
+   - For ephemeral CLI tools (e.g. `yt-dlp`, `speedtest`), define shell functions inside `shell_zsh_zshrc_block_custom` in `localhost.yml`.
+
+---
+
+## 8. Media Synchronization Scripts & Operations
+
+- **Sync Script**: `/opt/saltbox_mod/scripts/saltbox_sync.sh`
+- **Samba Post-Sync Helper**: `/opt/saltbox_mod/scripts/saltbox_sync_samba.sh`
+- **Functionality**:
+  - Validates mounts (`/mnt/local` and `/mnt/remote/media`).
+  - Purges junk files (`._*`, `.DS_Store`, `.localized`).
+  - Runs optimized `rsync --files-from` to avoid full remote scanning.
+  - Deletes aged source files on SSD (>90 minutes) once copied.
+  - Starts post-sync Samba indexing in a detached GNU Screen session (`saltbox_sync_samba`).
+  - Protected with `flock` (`/tmp/saltbox_sync.lock`).
+- **Healthchecks.io Dual Pings**:
+  - `CHECK_PING_URL`: Evaluated every run with status payload.
+  - `PING_URL`: Sent only when files were actually transferred/deleted, sending the full sync log.
+- **GNU Screen Commands**:
+  - `screen -ls`: list sessions
+  - `screen -r saltbox_sync_samba`: reattach
+  - `Ctrl-A, D`: detach
+  - `screen -S saltbox_sync_samba -X quit`: kill session
+- **Systemd Management**:
+  - Timer: `systemctl status saltbox-sync.timer`
+  - Manual start: `sudo systemctl start saltbox-sync.service`
+  - Forced CLI run: `/opt/saltbox_mod/scripts/saltbox_sync.sh -f`
+
+---
+
+## 9. Official Documentation & Reference Links
 
 - **Saltbox Inventory**: [https://docs.saltbox.dev/saltbox/inventory/](https://docs.saltbox.dev/saltbox/inventory/)
 - **Adding Your Own Containers**: [https://docs.saltbox.dev/advanced/your-own-containers/](https://docs.saltbox.dev/advanced/your-own-containers/)
@@ -263,10 +339,11 @@ If an application requires PostgreSQL, MariaDB, or Redis, include the existing u
 - **Traefik Template Module**: [https://docs.saltbox.dev/reference/modules/traefik_template/#usage](https://docs.saltbox.dev/reference/modules/traefik_template/#usage)
 - **Saltbox Core Documentation**: [https://docs.saltbox.dev/](https://docs.saltbox.dev/)
 - **Saltbox Core GitHub**: [https://github.com/saltyorg/Saltbox](https://github.com/saltyorg/Saltbox)
+- **Saltbox Mod GitHub**: [https://github.com/hereisderek/saltbox_mod](https://github.com/hereisderek/saltbox_mod)
 
 ---
 
-## 7. Modular Instruction Links
+## 10. Modular Reference Links
 
 - [`00_index.md`](file:///opt/saltbox_mod/.ai-instructions/00_index.md): Modular instructions index.
 - [`01_architecture_and_storage.md`](file:///opt/saltbox_mod/.ai-instructions/01_architecture_and_storage.md): Storage hierarchy, two tiers, and host paths.
