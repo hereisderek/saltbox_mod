@@ -1,0 +1,50 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | alacarte_apple_music | Tasks               #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+# Upstream Fork: https://github.com/hereisderek/alacarte-apple-music             #
+##################################################################################
+
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('role_var', '_dns_record') }}"
+    dns_zone: "{{ lookup('role_var', '_dns_zone') }}"
+    dns_proxy: "{{ lookup('role_var', '_dns_proxy') }}"
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Remove existing wrapper Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+  vars:
+    container_name: "{{ lookup('role_var', '_wrapper_container', role='alacarte_apple_music') }}"
+
+- name: Create directories
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
+
+- name: Create wrapper Docker container
+  community.docker.docker_container:
+    name: "{{ lookup('role_var', '_wrapper_container', role='alacarte_apple_music') }}"
+    image: "{{ lookup('role_var', '_wrapper_image', role='alacarte_apple_music') }}"
+    pull: "{{ lookup('role_var', '_docker_image_pull', role='alacarte_apple_music') | bool }}"
+    platform: linux/amd64
+    state: started
+    restart_policy: on-failure
+    network_mode: "{{ docker_networks_name_common }}"
+    networks:
+      - name: "{{ docker_networks_name_common }}"
+        aliases:
+          - "{{ lookup('role_var', '_wrapper_container', role='alacarte_apple_music') }}"
+          - "alacarte-wrapper"
+    volumes: "{{ lookup('role_var', '_wrapper_volumes', role='alacarte_apple_music') }}"
+    exposed_ports: "{{ lookup('role_var', '_wrapper_ports', role='alacarte_apple_music') }}"
+    labels: "{{ docker_labels_common | default({}) }}"
+    tls_hostname: localhost
+
+- name: Debug Docker container creation
+  ansible.builtin.include_tasks: "{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml"
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"

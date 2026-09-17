@@ -126,6 +126,7 @@ This repository maintains custom Ansible roles and integrations extending the st
 
 | Service | Tag | Description | Detailed Technical Docs |
 |---|---|---|---|
+| **ALACarte (Apple Music)** | `alacarte-apple-music` | Self-hosted Apple Music downloader with lossless ALAC-to-FLAC conversion & lyrics | [docs/alacarte_apple_music.md](docs/alacarte_apple_music.md) |
 | **Calibre-Web Automated** | `calibre-web-automated` | eBook library manager with ThemePark integration and universal calibre mod | [docs/calibre_web_automated.md](docs/calibre_web_automated.md) |
 | **Calibre-Web Downloader** | `calibre-web-automated-downloader` | Automated book downloader integrating Anna's Archive with Cloudflare bypass | [docs/calibre_web_automated_downloader.md](docs/calibre_web_automated_downloader.md) |
 | **DDNS Updater** | `ddns_updater` | Dynamic DNS updater supporting multiple external DNS providers | [docs/ddns_updater.md](docs/ddns_updater.md) |

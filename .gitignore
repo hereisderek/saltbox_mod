@@ -1,3 +1,4 @@
 saltbox_mod.log
 last_sync.state
-__pycache__/
+**/__pycache__/
+saltbox_mod.log*

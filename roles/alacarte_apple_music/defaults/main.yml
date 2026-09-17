@@ -1,0 +1,135 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | alacarte_apple_music | Defaults            #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+# Upstream Fork: https://github.com/hereisderek/alacarte-apple-music             #
+##################################################################################
+
+################################
+# Basics
+################################
+alacarte_apple_music_name: alacarte-apple-music
+
+################################
+# Paths
+################################
+alacarte_apple_music_role_paths_folder: "{{ alacarte_apple_music_name }}"
+alacarte_apple_music_role_paths_location: "{{ server_appdata_path }}/{{ alacarte_apple_music_role_paths_folder }}"
+alacarte_apple_music_role_paths_folders_list:
+  - "{{ alacarte_apple_music_role_paths_location }}"
+  - "{{ alacarte_apple_music_role_paths_location }}/data"
+  - "{{ alacarte_apple_music_role_paths_location }}/data/web"
+  - "{{ alacarte_apple_music_role_paths_location }}/data/wrapper"
+  - "{{ alacarte_apple_music_role_paths_location }}/music"
+alacarte_apple_music_role_paths_recursive: true
+
+################################
+# Web
+################################
+alacarte_apple_music_role_web_subdomain: "{{ alacarte_apple_music_name }}"
+alacarte_apple_music_role_web_domain: "{{ user.domain }}"
+alacarte_apple_music_role_web_port: "7373"
+alacarte_apple_music_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='alacarte_apple_music') + '.' + lookup('role_var', '_web_domain', role='alacarte_apple_music') if (lookup('role_var', '_web_subdomain', role='alacarte_apple_music') | length > 0) else lookup('role_var', '_web_domain', role='alacarte_apple_music')) }}"
+
+################################
+# DNS
+################################
+alacarte_apple_music_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='alacarte_apple_music') }}"
+alacarte_apple_music_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='alacarte_apple_music') }}"
+alacarte_apple_music_role_dns_proxy: "{{ dns_proxied }}"
+
+################################
+# Traefik (Reverse Proxy & Auth)
+################################
+alacarte_apple_music_role_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+alacarte_apple_music_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+alacarte_apple_music_role_traefik_middleware_custom: ""
+alacarte_apple_music_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+alacarte_apple_music_role_traefik_enabled: true
+alacarte_apple_music_role_traefik_api_enabled: false
+alacarte_apple_music_role_traefik_api_endpoint: ""
+
+################################
+# Wrapper Container (FairPlay Decryptor Daemon)
+################################
+alacarte_apple_music_role_wrapper_container: "{{ alacarte_apple_music_name }}-wrapper"
+alacarte_apple_music_role_wrapper_image_repo: "ghcr.io/hereisderek/alacarte-wrapper"
+alacarte_apple_music_role_wrapper_image_tag: "latest"
+alacarte_apple_music_role_wrapper_image: "{{ lookup('role_var', '_wrapper_image_repo', role='alacarte_apple_music') }}:{{ lookup('role_var', '_wrapper_image_tag', role='alacarte_apple_music') }}"
+
+alacarte_apple_music_role_wrapper_ports:
+  - "10020"
+  - "20020"
+  - "30020"
+  - "40020"
+
+alacarte_apple_music_role_wrapper_volumes_default:
+  - "{{ alacarte_apple_music_role_paths_location }}/data/wrapper:/app/rootfs/data"
+  - "/dev/null:/app/rootfs/dev/null"
+  - "/dev/urandom:/app/rootfs/dev/urandom"
+  - "/dev/random:/app/rootfs/dev/random"
+  - "/dev/zero:/app/rootfs/dev/zero"
+
+alacarte_apple_music_role_wrapper_volumes_custom: []
+alacarte_apple_music_role_wrapper_volumes: "{{ lookup('role_var', '_wrapper_volumes_default', role='alacarte_apple_music') + lookup('role_var', '_wrapper_volumes_custom', role='alacarte_apple_music') }}"
+
+################################
+# Main Docker Container (Web UI & Downloader)
+################################
+alacarte_apple_music_role_docker_container: "{{ alacarte_apple_music_name }}"
+alacarte_apple_music_role_docker_user: "{{ uid }}:{{ gid }}"
+
+# Image
+alacarte_apple_music_role_docker_image_pull: true
+alacarte_apple_music_role_docker_image_repo: "ghcr.io/hereisderek/alacarte-web"
+alacarte_apple_music_role_docker_image_tag: "latest"
+alacarte_apple_music_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='alacarte_apple_music') }}:{{ lookup('role_var', '_docker_image_tag', role='alacarte_apple_music') }}"
+
+# Init & Process Handling
+alacarte_apple_music_role_docker_init: true
+
+# Envs
+alacarte_apple_music_role_docker_envs_default:
+  PUID: "{{ uid }}"
+  PGID: "{{ gid }}"
+  TZ: "{{ tz }}"
+  PORT: "7373"
+  AMDL_WRAPPER_HOST: "{{ lookup('role_var', '_wrapper_container', role='alacarte_apple_music') }}"
+  AMDL_WRAPPER_DECRYPT_PORT: "10020"
+  AMDL_WRAPPER_M3U8_PORT: "20020"
+  AMDL_WRAPPER_ACCOUNT_PORT: "30020"
+  AMDL_WRAPPER_SUPERVISOR_PORT: "40020"
+  AMDL_MUSIC_PATH: "/music"
+  AMDL_CONFIG_DIR: "/config"
+  AMDL_SECRET_KEY: ""
+  AUTH_DISABLED: "false" # Set true in localhost.yml if using only Authelia SSO
+  TRUST_PROXY: "loopback"
+alacarte_apple_music_role_docker_envs_custom: {}
+alacarte_apple_music_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='alacarte_apple_music') | combine(lookup('role_var', '_docker_envs_custom', role='alacarte_apple_music')) }}"
+
+# Volumes (Keep generic! User maps /mnt/... in localhost.yml)
+alacarte_apple_music_role_docker_volumes_default:
+  - "{{ alacarte_apple_music_role_paths_location }}/data/web:/config"
+  - "{{ alacarte_apple_music_role_paths_location }}/data/wrapper:/wrapper-data"
+alacarte_apple_music_role_docker_volumes_custom: []
+alacarte_apple_music_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='alacarte_apple_music') + lookup('role_var', '_docker_volumes_custom', role='alacarte_apple_music') }}"
+
+# Ports
+alacarte_apple_music_role_docker_ports_defaults: []
+alacarte_apple_music_role_docker_ports_custom: []
+alacarte_apple_music_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='alacarte_apple_music') + lookup('role_var', '_docker_ports_custom', role='alacarte_apple_music') }}"
+
+# Network & Hostname
+alacarte_apple_music_role_docker_hostname: "{{ alacarte_apple_music_name }}"
+alacarte_apple_music_role_docker_networks_alias: "{{ alacarte_apple_music_name }}"
+alacarte_apple_music_role_docker_networks_default: []
+alacarte_apple_music_role_docker_networks_custom: []
+alacarte_apple_music_role_docker_networks: "{{ docker_networks_common + lookup('role_var', '_docker_networks_default', role='alacarte_apple_music') + lookup('role_var', '_docker_networks_custom', role='alacarte_apple_music') }}"
+
+# Operations
+alacarte_apple_music_role_docker_restart_policy: unless-stopped
+alacarte_apple_music_role_docker_state: started
+
+# Dependencies
+alacarte_apple_music_role_depends_on: "{{ lookup('role_var', '_wrapper_container', role='alacarte_apple_music') }}"
