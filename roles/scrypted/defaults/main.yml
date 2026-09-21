@@ -17,167 +17,171 @@ scrypted_name: scrypted
 # Settings
 ################################
 
-scrypted_nvr_enabled: true
-scrypted_nvr_path: "/mnt/unionfs/Media/Recording/scrypted"
-scrypted_avahi_enabled: false
-scrypted_watchtower_enabled: false
+scrypted_role_nvr_enabled: true
+scrypted_role_nvr_path: "/mnt/unionfs/Media/Recording/scrypted"
+scrypted_role_avahi_enabled: false
+scrypted_role_watchtower_enabled: false
 
 ################################
 # Paths
 ################################
 
-scrypted_paths_folder: "{{ scrypted_name }}"
-scrypted_paths_location: "{{ server_appdata_path }}/{{ scrypted_paths_folder }}"
-scrypted_paths_folders_list:
-  - "{{ scrypted_paths_location }}"
-  - "{{ scrypted_nvr_path }}"
+scrypted_role_paths_folder: "{{ scrypted_name }}"
+scrypted_role_paths_location: "{{ server_appdata_path }}/{{ scrypted_role_paths_folder }}"
+scrypted_role_paths_folders_list_default:
+  - "{{ lookup('role_var', '_paths_location', role='scrypted') }}"
+  - "{{ lookup('role_var', '_nvr_path', role='scrypted') }}"
+scrypted_role_paths_folders_list_custom: []
+scrypted_role_paths_folders_list: "{{ lookup('role_var', '_paths_folders_list_default', role='scrypted')
+                                    + lookup('role_var', '_paths_folders_list_custom', role='scrypted') }}"
 
 ################################
 # Web
 ################################
 
-scrypted_web_subdomain: "{{ scrypted_name }}"
-scrypted_web_domain: "{{ user.domain }}"
-scrypted_web_port: "11080"
-scrypted_web_url: "{{ 'https://' + (scrypted_web_subdomain + '.' + scrypted_web_domain
-                     if (scrypted_web_subdomain | length > 0)
-                     else scrypted_web_domain) }}"
+scrypted_role_web_subdomain: "{{ scrypted_name }}"
+scrypted_role_web_domain: "{{ user.domain }}"
+scrypted_role_web_port: "11080"
+scrypted_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='scrypted') + '.' + lookup('role_var', '_web_domain', role='scrypted')
+                         if (lookup('role_var', '_web_subdomain', role='scrypted') | length > 0)
+                         else lookup('role_var', '_web_domain', role='scrypted')) }}"
 
 ################################
 # DNS
 ################################
 
-scrypted_dns_record: "{{ scrypted_web_subdomain }}"
-scrypted_dns_zone: "{{ scrypted_web_domain }}"
-scrypted_dns_proxy: "{{ dns.proxied }}"
+scrypted_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='scrypted') }}"
+scrypted_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='scrypted') }}"
+scrypted_role_dns_proxy: "{{ dns_proxied }}"
 
 ################################
 # Traefik
 ################################
 
-scrypted_traefik_sso_middleware: "" # Scrypted handles its own authentication
-scrypted_traefik_middleware_default: "{{ traefik_default_middleware }}"
-scrypted_traefik_middleware_custom: ""
-scrypted_traefik_certresolver: "{{ traefik_default_certresolver }}"
-scrypted_traefik_enabled: true
-scrypted_traefik_api_enabled: false
-scrypted_traefik_api_endpoint: ""
+scrypted_role_traefik_sso_middleware: "" # Scrypted handles its own authentication
+scrypted_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+scrypted_role_traefik_middleware_custom: ""
+scrypted_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+scrypted_role_traefik_enabled: true
+scrypted_role_traefik_api_enabled: false
+scrypted_role_traefik_api_endpoint: ""
 
 ################################
 # Docker
 ################################
 
 # Container
-scrypted_docker_container: "{{ scrypted_name }}"
+scrypted_role_docker_container: "{{ scrypted_name }}"
 
 # Image
-scrypted_docker_image_pull: true
-scrypted_docker_image_tag: "{{ 'intel' if (gpu.intel | default(false)) else 'nvidia' if (use_nvidia | default(false)) else 'latest' }}"
-scrypted_docker_image: "ghcr.io/koush/scrypted:{{ scrypted_docker_image_tag }}"
+scrypted_role_docker_image_pull: true
+scrypted_role_docker_image_tag: "{{ 'intel' if (gpu.intel | default(false)) else 'nvidia' if (use_nvidia | default(false)) else 'latest' }}"
+scrypted_role_docker_image_repo: "ghcr.io/koush/scrypted"
+scrypted_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='scrypted') }}:{{ lookup('role_var', '_docker_image_tag', role='scrypted') }}"
 
 # Ports
-scrypted_docker_ports_defaults: []
-scrypted_docker_ports_custom: []
-scrypted_docker_ports: "{{ scrypted_docker_ports_defaults
-                          + scrypted_docker_ports_custom }}"
+scrypted_role_docker_ports_defaults: []
+scrypted_role_docker_ports_custom: []
+scrypted_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='scrypted')
+                              + lookup('role_var', '_docker_ports_custom', role='scrypted') }}"
 
 # Envs
-scrypted_docker_envs_default:
+scrypted_role_docker_envs_default:
   SCRYPTED_WEBHOOK_UPDATE_AUTHORIZATION: "Bearer {{ user.pass }}"
   SCRYPTED_WEBHOOK_UPDATE: "http://localhost:10444/v1/update"
-scrypted_docker_envs_nvr:
+scrypted_role_docker_envs_nvr:
   SCRYPTED_NVR_VOLUME: "/nvr"
-scrypted_docker_envs_avahi:
+scrypted_role_docker_envs_avahi:
   SCRYPTED_DOCKER_AVAHI: "true"
-scrypted_docker_envs_custom: {}
-scrypted_docker_envs: "{{ scrypted_docker_envs_default
-                         | combine(scrypted_docker_envs_nvr if scrypted_nvr_enabled else {})
-                         | combine(scrypted_docker_envs_avahi if scrypted_avahi_enabled else {})
-                         | combine(scrypted_docker_envs_custom) }}"
+scrypted_role_docker_envs_custom: {}
+scrypted_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='scrypted')
+                             | combine(scrypted_role_docker_envs_nvr if lookup('role_var', '_nvr_enabled', role='scrypted') else {})
+                             | combine(scrypted_role_docker_envs_avahi if lookup('role_var', '_avahi_enabled', role='scrypted') else {})
+                             | combine(lookup('role_var', '_docker_envs_custom', role='scrypted')) }}"
 
 # Commands
-scrypted_docker_commands_default: []
-scrypted_docker_commands_custom: []
-scrypted_docker_commands: "{{ scrypted_docker_commands_default
-                             + scrypted_docker_commands_custom }}"
+scrypted_role_docker_commands_default: []
+scrypted_role_docker_commands_custom: []
+scrypted_role_docker_commands: "{{ lookup('role_var', '_docker_commands_default', role='scrypted')
+                                 + lookup('role_var', '_docker_commands_custom', role='scrypted') }}"
 
 # Volumes
-scrypted_docker_volumes_default:
-  - "{{ scrypted_paths_location }}/volume:/server/volume"
-scrypted_docker_volumes_nvr:
-  - "{{ scrypted_nvr_path }}:/nvr"
-scrypted_docker_volumes_avahi:
+scrypted_role_docker_volumes_default:
+  - "{{ lookup('role_var', '_paths_location', role='scrypted') }}/volume:/server/volume"
+scrypted_role_docker_volumes_nvr:
+  - "{{ lookup('role_var', '_nvr_path', role='scrypted') }}/volume:/nvr"
+scrypted_role_docker_volumes_avahi:
   - "/var/run/dbus:/var/run/dbus"
   - "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket"
-scrypted_docker_volumes_custom: []
-scrypted_docker_volumes: "{{ scrypted_docker_volumes_default
-                            + (scrypted_docker_volumes_nvr if scrypted_nvr_enabled else [])
-                            + (scrypted_docker_volumes_avahi if scrypted_avahi_enabled else [])
-                            + scrypted_docker_volumes_custom }}"
+scrypted_role_docker_volumes_custom: []
+scrypted_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='scrypted')
+                                + (scrypted_role_docker_volumes_nvr if lookup('role_var', '_nvr_enabled', role='scrypted') else [])
+                                + (scrypted_role_docker_volumes_avahi if lookup('role_var', '_avahi_enabled', role='scrypted') else [])
+                                + lookup('role_var', '_docker_volumes_custom', role='scrypted') }}"
 
 # Devices
-scrypted_docker_devices_default: []
-scrypted_docker_devices_custom: []
-scrypted_docker_devices: "{{ scrypted_docker_devices_default
-                            + scrypted_docker_devices_custom }}"
+scrypted_role_docker_devices_default: []
+scrypted_role_docker_devices_custom: []
+scrypted_role_docker_devices: "{{ lookup('role_var', '_docker_devices_default', role='scrypted')
+                                + lookup('role_var', '_docker_devices_custom', role='scrypted') }}"
 
 # Hosts
-scrypted_docker_hosts_default: []
-scrypted_docker_hosts_custom: []
-scrypted_docker_hosts: "{{ docker_hosts_common
-                          | combine(scrypted_docker_hosts_default)
-                          | combine(scrypted_docker_hosts_custom) }}"
+scrypted_role_docker_hosts_default: {}
+scrypted_role_docker_hosts_custom: {}
+scrypted_role_docker_hosts: "{{ docker_hosts_common
+                              | combine(lookup('role_var', '_docker_hosts_default', role='scrypted'))
+                              | combine(lookup('role_var', '_docker_hosts_custom', role='scrypted')) }}"
 
 # Labels
-scrypted_docker_labels_default:
-  com.centurylinklabs.watchtower.scope: "scrypted"
-scrypted_docker_labels_custom: {}
-scrypted_docker_labels: "{{ docker_labels_common
-                           | combine(scrypted_docker_labels_default)
-                           | combine(scrypted_docker_labels_custom) }}"
+scrypted_role_docker_labels_default:
+  com.centurylinklabs.watchtower.scope: "{{ scrypted_name }}"
+scrypted_role_docker_labels_custom: {}
+scrypted_role_docker_labels: "{{ docker_labels_common
+                               | combine(lookup('role_var', '_docker_labels_default', role='scrypted'))
+                               | combine(lookup('role_var', '_docker_labels_custom', role='scrypted')) }}"
 
 # Hostname
-scrypted_docker_hostname: "{{ scrypted_name }}"
+scrypted_role_docker_hostname: "{{ scrypted_name }}"
 
 # Network Mode
-scrypted_docker_network_mode_default: "host"
-scrypted_docker_network_mode: "{{ scrypted_docker_network_mode_default }}"
+scrypted_role_docker_network_mode_default: "host"
+scrypted_role_docker_network_mode: "{{ lookup('role_var', '_docker_network_mode_default', role='scrypted') }}"
 
 # Networks
-scrypted_docker_networks_alias: "{{ scrypted_name }}"
-scrypted_docker_networks_default: []
-scrypted_docker_networks_custom: []
-scrypted_docker_networks: "{{ docker_networks_common
-                             + scrypted_docker_networks_default
-                             + scrypted_docker_networks_custom }}"
+scrypted_role_docker_networks_alias: "{{ scrypted_name }}"
+scrypted_role_docker_networks_default: []
+scrypted_role_docker_networks_custom: []
+scrypted_role_docker_networks: "{{ docker_networks_common
+                                 + lookup('role_var', '_docker_networks_default', role='scrypted')
+                                 + lookup('role_var', '_docker_networks_custom', role='scrypted') }}"
 
 # Capabilities
-scrypted_docker_capabilities_default: []
-scrypted_docker_capabilities_custom: []
-scrypted_docker_capabilities: "{{ scrypted_docker_capabilities_default
-                                 + scrypted_docker_capabilities_custom }}"
+scrypted_role_docker_capabilities_default: []
+scrypted_role_docker_capabilities_custom: []
+scrypted_role_docker_capabilities: "{{ lookup('role_var', '_docker_capabilities_default', role='scrypted')
+                                     + lookup('role_var', '_docker_capabilities_custom', role='scrypted') }}"
 
 # Security Opts
-scrypted_docker_security_opts_default: []
-scrypted_docker_security_opts_avahi:
+scrypted_role_docker_security_opts_default: []
+scrypted_role_docker_security_opts_avahi:
   - "apparmor:unconfined"
-scrypted_docker_security_opts_custom: []
-scrypted_docker_security_opts: "{{ scrypted_docker_security_opts_default
-                                  + (scrypted_docker_security_opts_avahi if scrypted_avahi_enabled else [])
-                                  + scrypted_docker_security_opts_custom }}"
+scrypted_role_docker_security_opts_custom: []
+scrypted_role_docker_security_opts: "{{ lookup('role_var', '_docker_security_opts_default', role='scrypted')
+                                      + (scrypted_role_docker_security_opts_avahi if lookup('role_var', '_avahi_enabled', role='scrypted') else [])
+                                      + lookup('role_var', '_docker_security_opts_custom', role='scrypted') }}"
 
 # Restart Policy
-scrypted_docker_restart_policy: unless-stopped
+scrypted_role_docker_restart_policy: unless-stopped
 
 # State
-scrypted_docker_state: started
+scrypted_role_docker_state: started
 
 # Logging
-scrypted_docker_log_driver: "none"
-scrypted_docker_log_options: {}
+scrypted_role_docker_log_driver: "none"
+scrypted_role_docker_log_options: {}
 
 # Health Check
-scrypted_docker_healthcheck:
+scrypted_role_docker_healthcheck:
   test: ["CMD-SHELL", "curl -f http://localhost:11080/ || exit 1"]
   interval: 30s
   timeout: 10s
