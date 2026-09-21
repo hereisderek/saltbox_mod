@@ -42,6 +42,13 @@ Welcome to the AI instructions and system reference guide for `/opt/saltbox_mod`
    - GNU Screen management commands.
    - Systemd timers and service debugging.
 
+7. **[07. Multiple App Instances Architecture & Authoring Guide](file:///opt/saltbox_mod/.ai-instructions/07_multiple_instances_architecture.md)**
+   - Official documentation: [https://docs.saltbox.dev/reference/multiple-instances/](https://docs.saltbox.dev/reference/multiple-instances/)
+   - Orchestration loop pattern (`main.yml` -> `main2.yml`).
+   - Variable resolution precedence (`role_var.py`, `docker_vars.py`, `role_web.py`).
+   - Resource isolation: paths, network aliases, DNS, Traefik routes, and port arbitration.
+   - Authoring and validating custom roles for multi-instance compatibility.
+
 ---
 
 ## Important File Paths

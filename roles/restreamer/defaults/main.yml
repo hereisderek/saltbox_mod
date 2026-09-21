@@ -1,8 +1,7 @@
 #########################################################################
-# Title:            Sandbox: Restreamer                                 #
+# Title:            Saltbox Mod: Restreamer                             #
 # Author(s):        Derek Z, JigSawFr                                   #
 # URL:              https://github.com/saltyorg/Sandbox                 #
-# URL:              https://github.com/linuxserver/docker-duplicati     #
 # URL:              https://github.com/datarhei/restreamer              #
 # --                                                                    #
 #########################################################################
@@ -17,53 +16,57 @@ restreamer_name: restreamer
 ################################
 # Paths
 ################################
-restreamer_paths_folder: "{{ restreamer_name }}"
-restreamer_paths_location: "{{ server_appdata_path }}/{{ restreamer_paths_folder }}"
-restreamer_paths_folders_list:
-  - "{{ restreamer_paths_location }}"
-  - "{{ restreamer_paths_location }}/config"
-  - "{{ restreamer_paths_location }}/data"
+restreamer_role_paths_folder: "{{ restreamer_name }}"
+restreamer_role_paths_location: "{{ server_appdata_path }}/{{ restreamer_role_paths_folder }}"
+restreamer_role_paths_folders_list_default:
+  - "{{ lookup('role_var', '_paths_location', role='restreamer') }}"
+  - "{{ lookup('role_var', '_paths_location', role='restreamer') }}/config"
+  - "{{ lookup('role_var', '_paths_location', role='restreamer') }}/data"
+restreamer_role_paths_folders_list_custom: []
+restreamer_role_paths_folders_list: "{{ lookup('role_var', '_paths_folders_list_default', role='restreamer')
+                                      + lookup('role_var', '_paths_folders_list_custom', role='restreamer') }}"
 
 ################################
 # Web
 ################################
-restreamer_web_subdomain: "{{ restreamer_name }}"
-restreamer_web_domain: "{{ user.domain }}"
-restreamer_web_port: "8080"
-restreamer_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='restreamer') + '.' + lookup('role_var', '_web_domain', role='restreamer') if (lookup('role_var', '_web_subdomain', role='restreamer') | length > 0) else lookup('role_var', '_web_domain', role='restreamer')) }}"
+restreamer_role_web_subdomain: "{{ restreamer_name }}"
+restreamer_role_web_domain: "{{ user.domain }}"
+restreamer_role_web_port: "8080"
+restreamer_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='restreamer') + '.' + lookup('role_var', '_web_domain', role='restreamer')
+                           if (lookup('role_var', '_web_subdomain', role='restreamer') | length > 0)
+                           else lookup('role_var', '_web_domain', role='restreamer')) }}"
 
 ################################
 # DNS
 ################################
-restreamer_dns_record: "{{ lookup('role_var', '_web_subdomain', role='restreamer') }}"
-restreamer_dns_zone: "{{ lookup('role_var', '_web_domain', role='restreamer') }}"
-restreamer_dns_proxy: "{{ dns.proxied }}"
+restreamer_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='restreamer') }}"
+restreamer_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='restreamer') }}"
+restreamer_role_dns_proxy: "{{ dns_proxied }}"
 
 ################################
 # Traefik (Reverse Proxy & Auth)
 ################################
-restreamer_traefik_sso_middleware: ""
-# restreamer_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
-restreamer_traefik_middleware_default: "{{ traefik_default_middleware }}"
-restreamer_traefik_middleware_custom: ""
-restreamer_traefik_certresolver: "{{ traefik_default_certresolver }}"
-restreamer_traefik_enabled: true
-restreamer_traefik_api_enabled: true
-restreamer_traefik_api_endpoint: "PathPrefix(`/api`) || PathPrefix(`/ui`)"
+restreamer_role_traefik_sso_middleware: ""
+restreamer_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+restreamer_role_traefik_middleware_custom: ""
+restreamer_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+restreamer_role_traefik_enabled: true
+restreamer_role_traefik_api_enabled: true
+restreamer_role_traefik_api_endpoint: "PathPrefix(`/api`) || PathPrefix(`/ui`)"
 
 ################################
 # Docker
 ################################
-restreamer_docker_container: "{{ restreamer_name }}"
+restreamer_role_docker_container: "{{ restreamer_name }}"
 
 # Image
-restreamer_docker_image_pull: true
-restreamer_docker_image_repo: "datarhei/restreamer"
-restreamer_docker_image_tag: "{{ 'vaapi-latest' if (gpu.intel | default(false)) else 'cuda-latest' if (use_nvidia | default(false)) else 'latest' }}"
-restreamer_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='restreamer') }}:{{ lookup('role_var', '_docker_image_tag', role='restreamer') }}"
+restreamer_role_docker_image_pull: true
+restreamer_role_docker_image_repo: "datarhei/restreamer"
+restreamer_role_docker_image_tag: "{{ 'vaapi-latest' if (gpu.intel | default(false)) else 'cuda-latest' if (use_nvidia | default(false)) else 'latest' }}"
+restreamer_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='restreamer') }}:{{ lookup('role_var', '_docker_image_tag', role='restreamer') }}"
 
 # Envs
-restreamer_docker_envs_default:
+restreamer_role_docker_envs_default:
   PUID: "{{ uid }}"
   PGID: "{{ gid }}"
   TZ: "{{ tz }}"
@@ -72,57 +75,69 @@ restreamer_docker_envs_default:
   CORE_API_AUTH_PASSWORD: "{{ user.pass }}"
   CORE_HOST_NAME: "{{ lookup('role_var', '_web_subdomain', role='restreamer') + '.' + lookup('role_var', '_web_domain', role='restreamer') }}"
 
-restreamer_docker_envs_custom: {}
-restreamer_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='restreamer') | combine(lookup('role_var', '_docker_envs_custom', role='restreamer')) }}"
+restreamer_role_docker_envs_custom: {}
+restreamer_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='restreamer')
+                               | combine(lookup('role_var', '_docker_envs_custom', role='restreamer')) }}"
 
 # Volumes
-restreamer_docker_volumes_default:
-  - "{{ restreamer_paths_location }}/config:/core/config"
-  - "{{ restreamer_paths_location }}/data:/core/data"
+restreamer_role_docker_volumes_default:
+  - "{{ lookup('role_var', '_paths_location', role='restreamer') }}/config:/core/config"
+  - "{{ lookup('role_var', '_paths_location', role='restreamer') }}/data:/core/data"
 
-restreamer_docker_volumes_custom: []
-restreamer_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='restreamer') + lookup('role_var', '_docker_volumes_custom', role='restreamer') }}"
+restreamer_role_docker_volumes_custom: []
+restreamer_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='restreamer')
+                                  + lookup('role_var', '_docker_volumes_custom', role='restreamer') }}"
 
 # Ports
-restreamer_docker_ports_defaults: []
-restreamer_docker_ports_custom:
+restreamer_role_docker_ports_defaults: []
+restreamer_role_docker_ports_custom:
   - "1935:1935"
   - "1936:1936"
   - "6000:6000/udp"
-restreamer_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='restreamer') + lookup('role_var', '_docker_ports_custom', role='restreamer') }}"
+restreamer_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='restreamer')
+                                + lookup('role_var', '_docker_ports_custom', role='restreamer') }}"
 
 # Devices
-restreamer_docker_devices_default: ["/dev/dri"]
-restreamer_docker_devices_custom: []
-restreamer_docker_devices: "{{ lookup('role_var', '_docker_devices_default', role='restreamer') + lookup('role_var', '_docker_devices_custom', role='restreamer') }}"
+restreamer_role_docker_devices_default: ["/dev/dri"]
+restreamer_role_docker_devices_custom: []
+restreamer_role_docker_devices: "{{ lookup('role_var', '_docker_devices_default', role='restreamer')
+                                  + lookup('role_var', '_docker_devices_custom', role='restreamer') }}"
 
 # Hosts
-restreamer_docker_hosts_default: []
-restreamer_docker_hosts_custom: []
-restreamer_docker_hosts: "{{ docker_hosts_common | combine(lookup('role_var', '_docker_hosts_default', role='restreamer')) | combine(lookup('role_var', '_docker_hosts_custom', role='restreamer')) }}"
+restreamer_role_docker_hosts_default: {}
+restreamer_role_docker_hosts_custom: {}
+restreamer_role_docker_hosts: "{{ docker_hosts_common
+                                | combine(lookup('role_var', '_docker_hosts_default', role='restreamer'))
+                                | combine(lookup('role_var', '_docker_hosts_custom', role='restreamer')) }}"
 
 # Labels
-restreamer_docker_labels_default: {}
-restreamer_docker_labels_custom: {}
-restreamer_docker_labels: "{{ docker_labels_common | combine(lookup('role_var', '_docker_labels_default', role='restreamer')) | combine(lookup('role_var', '_docker_labels_custom', role='restreamer')) }}"
+restreamer_role_docker_labels_default: {}
+restreamer_role_docker_labels_custom: {}
+restreamer_role_docker_labels: "{{ docker_labels_common
+                                 | combine(lookup('role_var', '_docker_labels_default', role='restreamer'))
+                                 | combine(lookup('role_var', '_docker_labels_custom', role='restreamer')) }}"
 
 # Network & Hostname
-restreamer_docker_hostname: "{{ restreamer_name }}"
-restreamer_docker_networks_alias: "{{ restreamer_name }}"
-restreamer_docker_networks_default: []
-restreamer_docker_networks_custom: []
-restreamer_docker_networks: "{{ docker_networks_common + lookup('role_var', '_docker_networks_default', role='restreamer') + lookup('role_var', '_docker_networks_custom', role='restreamer') }}"
+restreamer_role_docker_hostname: "{{ restreamer_name }}"
+restreamer_role_docker_networks_alias: "{{ restreamer_name }}"
+restreamer_role_docker_networks_default: []
+restreamer_role_docker_networks_custom: []
+restreamer_role_docker_networks: "{{ docker_networks_common
+                                   + lookup('role_var', '_docker_networks_default', role='restreamer')
+                                   + lookup('role_var', '_docker_networks_custom', role='restreamer') }}"
 
 # Capabilities
-restreamer_docker_capabilities_default: []
-restreamer_docker_capabilities_custom: []
-restreamer_docker_capabilities: "{{ lookup('role_var', '_docker_capabilities_default', role='restreamer') + lookup('role_var', '_docker_capabilities_custom', role='restreamer') }}"
+restreamer_role_docker_capabilities_default: []
+restreamer_role_docker_capabilities_custom: []
+restreamer_role_docker_capabilities: "{{ lookup('role_var', '_docker_capabilities_default', role='restreamer')
+                                       + lookup('role_var', '_docker_capabilities_custom', role='restreamer') }}"
 
 # Security Opts
-restreamer_docker_security_opts_default: []
-restreamer_docker_security_opts_custom: []
-restreamer_docker_security_opts: "{{ lookup('role_var', '_docker_security_opts_default', role='restreamer') + lookup('role_var', '_docker_security_opts_custom', role='restreamer') }}"
+restreamer_role_docker_security_opts_default: []
+restreamer_role_docker_security_opts_custom: []
+restreamer_role_docker_security_opts: "{{ lookup('role_var', '_docker_security_opts_default', role='restreamer')
+                                        + lookup('role_var', '_docker_security_opts_custom', role='restreamer') }}"
 
 # Operations
-restreamer_docker_restart_policy: unless-stopped
-restreamer_docker_state: started
+restreamer_role_docker_restart_policy: unless-stopped
+restreamer_role_docker_state: started
