@@ -27,9 +27,9 @@
     - { role: tubesync, tags: ['tubesync'] }
     - { role: youtubedl, tags: ['youtubedl'] }
     - { role: ytdl_sub, tags: ['ytdl-sub'] }
-    - { role: music_tag_web, tags: ['music-tag-web', 'music_tag_web'] }
+    - { role: music_tag_web, tags: ['music-tag-web'] }
     - { role: dockge, tags: ['dockge'] }
     - { role: simple_sq_music_plus, tags: ['simple_sq_music_plus'] }
     - { role: lxserver, tags: ['lxserver'] }
     - { role: solara, tags: ['solara'] }
-    - { role: alacarte_apple_music, tags: ['alacarte-apple-music', 'alacarte_apple_music'] }
+    - { role: alacarte_apple_music, tags: ['alacarte-apple-music'] }

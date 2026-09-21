@@ -40,7 +40,7 @@
           - "alacarte-wrapper"
     volumes: "{{ lookup('role_var', '_wrapper_volumes', role='alacarte_apple_music') }}"
     exposed_ports: "{{ lookup('role_var', '_wrapper_ports', role='alacarte_apple_music') }}"
-    labels: "{{ docker_labels_common | default({}) }}"
+    labels: "{{ docker_labels_saltbox | default({}) }}"
     tls_hostname: localhost
 
 - name: Debug Docker container creation
