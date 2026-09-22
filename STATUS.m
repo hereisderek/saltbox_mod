@@ -1,1 +1,0 @@
-* need a way to distinguish the qbittorrent settings in localhost.yml if they are for the saltbox/qbittorrent or my saltbox-mod/qbittorrent

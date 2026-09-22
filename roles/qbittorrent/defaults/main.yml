@@ -29,57 +29,43 @@ qbittorrent_role_webui_custom_headers: "{{ (lookup('role_var', '_webui_custom_he
 qbittorrent_role_torrent_content_remove_option: "Delete"
 
 ################################
-# Host Install
-################################
-
-# Options are: libtorrent1 (latest), libtorrent2 (latest) or legacy (4.3.9)
-qbittorrent_role_host_branch: libtorrent1
-# Example being "release-4.4.5_v1.2.18"
-# If this is set then the above branch logic is ignored
-qbittorrent_role_host_specific_version: ""
-
-# Lookup variables
-qbittorrent_role_host_download_endpoint: "{{ 'https://github.com/userdocs/qbittorrent-nox-static/releases/download/'
-                                          if lookup('role_var', '_host_branch', role='qbittorrent') != 'legacy'
-                                          else 'https://github.com/userdocs/qbittorrent-nox-static-legacy/releases/download/' }}"
-# Skip docs
-qbittorrent_role_host_download_version: "{{ lookup('role_var',
-                                                   '_host_specific_version',
-                                                   role='qbittorrent',
-                                                   default=lookup('role_var', '_host_version', role='qbittorrent'),
-                                                   default_if_empty=true) }}"
-qbittorrent_role_host_download_url: "{{ lookup('role_var', '_host_download_endpoint', role='qbittorrent') }}{{ lookup('role_var', '_host_download_version', role='qbittorrent') }}/x86_64-qbittorrent-nox"
-qbittorrent_role_host_release_url: "{{ 'https://github.com/userdocs/qbittorrent-nox-static/releases/latest/download/dependency-version.json'
-                                    if lookup('role_var', '_host_branch', role='qbittorrent') != 'legacy'
-                                    else 'https://github.com/userdocs/qbittorrent-nox-static-legacy/releases/latest/download/dependency-version.json' }}"
-qbittorrent_role_host_version: "{{ 'release-' + (qbittorrent_host_version_response.content | from_json).qbittorrent
-                                   + '_v' + ((qbittorrent_host_version_response.content | from_json).libtorrent_2_0
-                                             if lookup('role_var', '_host_branch', role='qbittorrent') == 'libtorrent2'
-                                             else (qbittorrent_host_version_response.content | from_json).libtorrent_1_2) }}"
-qbittorrent_role_service_name: "saltbox_managed_{{ qbittorrent_name }}.service"
-qbittorrent_role_service_after: "network-online.target docker.service"
-qbittorrent_role_service_requires: "network-online.target docker.service"
-qbittorrent_role_service_wants: ""
-qbittorrent_role_service_partof: "docker.service"
-
-################################
 # Paths
 ################################
 
+# "_mod" is always appended so this instance's data never collides with
+# upstream Saltbox's own /opt/saltbox qbittorrent role (or another instance
+# of it) sharing the same host and the same localhost.yml.
+#
+# NOTE: qbittorrent_role_paths_folder is NOT actually sourced from here -
+# upstream's own qbittorrent role defines the same variable name (without
+# "_mod"), and Saltbox's pre_tasks unconditionally loads every role's
+# defaults at a HIGHER precedence than this file, so upstream's value would
+# otherwise win. It's forced via set_fact in
+# tasks/subtasks/mod_var_overrides.yml instead - see the comment there.
+# Listed here anyway for documentation, and as the fallback if that task is
+# ever skipped.
 qbittorrent_role_paths_folder: "{{ qbittorrent_name }}_mod"
 qbittorrent_role_paths_location: "{{ server_appdata_path }}/{{ qbittorrent_role_paths_folder }}"
 qbittorrent_role_paths_downloads_location: "{{ downloads_torrents_path }}/{{ qbittorrent_role_paths_folder }}"
+# Conf lives at the same host path regardless of image family (see docker
+# volumes below) so switching qbittorrent_role_docker_image_repo never moves it.
 qbittorrent_role_paths_conf: "{{ qbittorrent_role_paths_location }}/qBittorrent/qBittorrent.conf"
+# Canonical, image-agnostic home for qBittorrent's session/runtime data
+# (BT_backup, GeoDB, rss, network_state.conf, ...). Both the default and the
+# hotio image are mounted so this same host directory is what they use.
+qbittorrent_role_paths_data_location: "{{ qbittorrent_role_paths_location }}/data"
 qbittorrent_role_paths_folders_list_default:
   - "{{ qbittorrent_role_paths_location }}"
   - "{{ qbittorrent_role_paths_location }}/qBittorrent"
-  - "{{ qbittorrent_role_paths_location }}/data"
+  - "{{ qbittorrent_role_paths_data_location }}"
   - "{{ qbittorrent_role_paths_downloads_location }}"
   - "{{ qbittorrent_role_paths_downloads_location }}/completed"
   - "{{ qbittorrent_role_paths_downloads_location }}/incoming"
   - "{{ qbittorrent_role_paths_downloads_location }}/watched"
   - "{{ qbittorrent_role_paths_downloads_location }}/torrents"
 qbittorrent_role_paths_folders_list_custom: []
+# Also forced via set_fact in mod_var_overrides.yml - upstream defines this
+# same combined variable name with a different (shorter) list.
 qbittorrent_role_paths_folders_list: "{{ lookup('role_var', '_paths_folders_list_default', role='qbittorrent')
                                          + lookup('role_var', '_paths_folders_list_custom', role='qbittorrent') }}"
 
@@ -135,6 +121,7 @@ qbittorrent_role_themepark_headers: "\"content-security-policy: default-src 'sel
 
 qbittorrent_role_port_peer_low_bound: 56881
 qbittorrent_role_port_peer_high_bound: 56901
+# Only used when qbittorrent_role_host_install is true; this mod targets Docker.
 qbittorrent_role_port_web_low_bound: 8090
 qbittorrent_role_port_web_high_bound: 8100
 
@@ -173,26 +160,35 @@ qbittorrent_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', rol
                                   | combine(lookup('role_var', '_docker_envs_custom', role='qbittorrent')) }}"
 
 # Volumes
+#
+# qbittorrent_role_docker_volumes(_default) is also forced via set_fact in
+# mod_var_overrides.yml, for the same reason as paths_folder above - upstream
+# defines both these names too, with a plain single "/config" mount and no
+# hotio awareness, and would otherwise win.
+#
+# Both image families are mounted from the SAME two host directories
+# (paths_location/qBittorrent and paths_location/data) - only the container
+# side of the mount differs. This means switching
+# qbittorrent_role_docker_image_repo between the default image and the hotio
+# image never requires moving/copying any data: the next deploy just mounts
+# the same files at a different spot in the new container.
 qbittorrent_role_docker_volumes_default: "{{
-  [
-    lookup('role_var', '_paths_location', role='qbittorrent') + '/qBittorrent:/config/config',
-    lookup('role_var', '_paths_location', role='qbittorrent') + '/data:/config/data',
-    server_appdata_path + '/scripts:/scripts'
-  ]
-  if lookup('role_var', '_is_hotio', role='qbittorrent')
-  else
-  [
-    lookup('role_var', '_paths_location', role='qbittorrent') + ':/config',
-    server_appdata_path + '/scripts:/scripts'
-  ]
+  (
+    [
+      lookup('role_var', '_paths_location', role='qbittorrent') + '/qBittorrent:/config/config',
+      lookup('role_var', '_paths_data_location', role='qbittorrent') + ':/config/data'
+    ]
+    if lookup('role_var', '_is_hotio', role='qbittorrent')
+    else
+    [
+      lookup('role_var', '_paths_location', role='qbittorrent') + ':/config',
+      lookup('role_var', '_paths_data_location', role='qbittorrent') + ':/config/qBittorrent/data'
+    ]
+  ) + [ server_appdata_path + '/scripts:/scripts' ]
 }}"
 qbittorrent_role_docker_volumes_custom: []
 qbittorrent_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='qbittorrent')
-                                     + lookup('role_var', '_docker_volumes_custom', role='qbittorrent')
-                                     + ([lookup('role_var', '_alt_webui_dir', role='qbittorrent') + ':/config/webui']
-                                        if (lookup('role_var', '_alt_webui_enabled', role='qbittorrent')
-                                            and (lookup('role_var', '_alt_webui_dir', role='qbittorrent') + ':/config/webui') not in (lookup('role_var', '_docker_volumes_default', role='qbittorrent') + lookup('role_var', '_docker_volumes_custom', role='qbittorrent')))
-                                        else []) }}"
+                                     + lookup('role_var', '_docker_volumes_custom', role='qbittorrent') }}"
 
 # Labels
 qbittorrent_role_docker_labels_default: {}
@@ -228,11 +224,47 @@ qbittorrent_role_alt_webui_enabled: false
 qbittorrent_role_alt_webui_url: "https://github.com/VueTorrent/VueTorrent"
 qbittorrent_role_alt_webui_version: "latest"
 qbittorrent_role_alt_webui_dir: "{{ lookup('role_var', '_paths_location', role='qbittorrent') }}/webui"
+# Path as seen INSIDE the container (api key: alternative_webui_path).
+qbittorrent_role_alt_webui_container_path: "/config/webui"
 
 ################################
-# Auth Bypass (Reverse Proxy / Authelia)
+# WebUI Security Settings
+#
+# Applied via plain ini_file edits (see tasks/subtasks/mod_settings.yml),
+# same as upstream's own settings tasks - written while the container is
+# stopped, which is what actually makes them stick. Username/password are
+# left entirely to upstream's own post-install (user.name / user.pass, set
+# once on first bootstrap) rather than reset here on every redeploy.
 ################################
 
+# Whether to bypass qBittorrent's own login prompt for requests whose
+# (reverse-proxy-derived) client IP falls inside the whitelist below. This is
+# safe to enable for LAN/VPN ranges because Traefik's `qbittorrent` /
+# `qbittorrent-http` routers already require Authelia. It must NOT be
+# widened to 0.0.0.0/0: the separate `qbittorrent-api` / `qbittorrent-api-http`
+# Traefik routers intentionally bypass Authelia (for *arr-style automation
+# hitting /api, /command, /query, /login, /sync), so qBittorrent's own auth
+# is the only gate left on those paths - whitelisting all IPs there would
+# leave them open to the entire internet.
 qbittorrent_role_auth_bypass_enabled: false
-qbittorrent_role_auth_subnet_whitelist: "0.0.0.0/0, ::/0"
+qbittorrent_role_auth_subnet_whitelist: "172.19.0.0/16"
 
+# qBittorrent sits behind Traefik on the "saltbox" docker network, so trust
+# X-Forwarded-For from that network to resolve the real client IP for the
+# whitelist check above (rather than Traefik's own container IP).
+qbittorrent_role_reverse_proxy_enabled: true
+qbittorrent_role_reverse_proxies_list: "172.19.0.0/16"
+
+# qBittorrent's built-in anti-bruteforce lockout (WebUI\MaxAuthenticationFailCount
+# failed attempts within a window -> ban for WebUI\BanDuration seconds) applies
+# per derived client IP and is easy to trip by accident (e.g. testing a login
+# flow, or a password manager retry) - once tripped, even fully correct
+# credentials from that IP are rejected until the ban expires.
+#
+# Left empty by default: this mod does not manage these two settings unless
+# you explicitly set a value in localhost.yml. Empty means "leave qBittorrent's
+# own built-in default (and whatever it currently has on disk) alone" - see
+# tasks/subtasks/mod_settings.yml, which skips the ini_file task entirely
+# when empty rather than writing a value.
+qbittorrent_role_webui_max_auth_fail_count: ""
+qbittorrent_role_webui_ban_duration: ""

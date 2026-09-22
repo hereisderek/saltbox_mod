@@ -1,0 +1,51 @@
+#########################################################################
+# Title:         Saltbox: qBittorrent | Mod Variable Overrides          #
+# Author(s):     modded for saltbox_mod                                 #
+# URL:           https://github.com/saltyorg/Saltbox                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+# WHY THIS EXISTS: Saltbox's pre_tasks role (tasks/subtasks/variables.yml)
+# unconditionally globs every role's defaults/main.yml under
+# /srv/git/saltbox/roles and loads them all via include_vars - which is a
+# HIGHER Ansible variable-precedence tier than this (or any) role's own
+# defaults/main.yml. Since this mod intentionally reuses upstream's exact
+# `qbittorrent_role_*` variable names (that's the whole point - see
+# .ai-instructions/08_qbittorrent_mod_and_auth_bypass.md), any variable
+# where our intended default differs from upstream's own default gets
+# silently clobbered back to upstream's value, no matter what
+# defaults/main.yml in THIS role says.
+#
+# localhost.yml host_vars are loaded by pre_tasks too, right after upstream's
+# defaults, so an explicit localhost.yml override already correctly wins.
+# This task only needs to cover the few variables where our role's OWN
+# built-in default differs from upstream's - i.e. it stands in for
+# defaults/main.yml, at a precedence tier (set_fact) that actually wins.
+- name: Force mod-owned data folder (never upstream's un-suffixed paths_folder)
+  ansible.builtin.set_fact:
+    qbittorrent_role_paths_folder: "{{ qbittorrent_name }}_mod"
+
+- name: Force the full directory list (upstream's own list doesn't know about qBittorrent/data)
+  ansible.builtin.set_fact:
+    qbittorrent_role_paths_folders_list: "{{ lookup('role_var', '_paths_folders_list_default', role='qbittorrent')
+                                             + lookup('role_var', '_paths_folders_list_custom', role='qbittorrent') }}"
+
+- name: Force the image-aware, unified-layout docker volume list
+  ansible.builtin.set_fact:
+    qbittorrent_role_docker_volumes: "{{
+      (
+        [
+          lookup('role_var', '_paths_location', role='qbittorrent') + '/qBittorrent:/config/config',
+          lookup('role_var', '_paths_data_location', role='qbittorrent') + ':/config/data'
+        ]
+        if lookup('role_var', '_is_hotio', role='qbittorrent')
+        else
+        [
+          lookup('role_var', '_paths_location', role='qbittorrent') + ':/config',
+          lookup('role_var', '_paths_data_location', role='qbittorrent') + ':/config/qBittorrent/data'
+        ]
+      )
+      + [ server_appdata_path + '/scripts:/scripts' ]
+      + lookup('role_var', '_docker_volumes_custom', role='qbittorrent')
+    }}"

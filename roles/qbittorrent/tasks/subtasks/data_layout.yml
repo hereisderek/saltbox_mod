@@ -1,0 +1,37 @@
+#########################################################################
+# Title:         Saltbox: qBittorrent | Data Layout Normalization       #
+# Author(s):     modded for saltbox_mod                                 #
+# URL:           https://github.com/saltyorg/Saltbox                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+# Both the default and hotio images are mounted from the same canonical
+# "data" directory (see defaults/main.yml), so switching
+# qbittorrent_role_docker_image_repo normally needs no data migration at all.
+#
+# This is only a safety net for a directory tree left behind by a role
+# version predating that unification, where the default (non-hotio) image's
+# runtime data nested under "qBittorrent/data" instead of living at the
+# canonical top-level "data" directory. If found, and nothing has claimed
+# the canonical path yet, move (not copy) it into place.
+- name: Check for legacy nested data directory
+  ansible.builtin.stat:
+    path: "{{ lookup('role_var', '_paths_location', role='qbittorrent') }}/qBittorrent/data"
+  register: qbittorrent_legacy_nested_data
+
+- name: Check for canonical data directory
+  ansible.builtin.stat:
+    path: "{{ lookup('role_var', '_paths_data_location', role='qbittorrent') }}"
+  register: qbittorrent_canonical_data
+
+- name: Migrate legacy nested data directory to the canonical location
+  ansible.builtin.command:
+    cmd: >-
+      mv
+      {{ lookup('role_var', '_paths_location', role='qbittorrent') }}/qBittorrent/data
+      {{ lookup('role_var', '_paths_data_location', role='qbittorrent') }}
+  when:
+    - qbittorrent_legacy_nested_data.stat.exists
+    - qbittorrent_legacy_nested_data.stat.isdir
+    - not qbittorrent_canonical_data.stat.exists

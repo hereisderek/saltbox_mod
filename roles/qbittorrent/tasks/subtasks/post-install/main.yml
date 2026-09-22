@@ -1,1 +1,31 @@
-/srv/git/saltbox/roles/qbittorrent/tasks/subtasks/post-install/main.yml
+#########################################################################
+# Title:         Saltbox: qBittorrent | Post-Install Tasks              #
+# Author(s):     salty, modded for saltbox_mod                          #
+# URL:           https://github.com/saltyorg/Saltbox                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+# Replicates upstream's own post-install/main.yml (wait -> stop -> settings ->
+# start), minus the host-install branches (this mod is Docker-only - see
+# main2.yml). This can't just import upstream's file directly: its internal
+# `include_tasks: "settings/main.yml"` is a relative reference that resolves
+# against ITS OWN directory when included that way, which would silently
+# skip our mod settings below.
+- name: Post-Install | Wait for config to be created
+  ansible.builtin.wait_for:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    state: present
+
+- name: Post-Install | Wait for 30 seconds
+  ansible.builtin.wait_for:
+    timeout: 30
+
+- name: Post-Install | Stop container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/stop_docker_container.yml"
+
+- name: Post-Install | Settings Task
+  ansible.builtin.include_tasks: "settings/main.yml"
+
+- name: Post-Install | Start container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/start_docker_container.yml"

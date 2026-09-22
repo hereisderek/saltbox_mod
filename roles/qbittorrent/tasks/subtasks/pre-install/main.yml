@@ -2,7 +2,6 @@
 # Title:         Saltbox: qBittorrent | Pre-Install Tasks               #
 # Author(s):     salty, modded for saltbox_mod                          #
 # URL:           https://github.com/saltyorg/Saltbox                    #
-# --                                                                    #
 #########################################################################
 #                   GNU General Public License v3.0                     #
 #########################################################################
@@ -10,55 +9,8 @@
 - name: Run upstream pre-install tasks
   ansible.builtin.include_tasks: /srv/git/saltbox/roles/qbittorrent/tasks/subtasks/pre-install/main.yml
 
+# Only meaningful once a conf already exists (redeploys) - matches upstream's
+# own gating for its equivalent block just above.
 - name: Pre-Install | Mod Settings
+  ansible.builtin.include_tasks: ../mod_settings.yml
   when: qbittorrent_role_paths_conf_stat.stat.exists
-  block:
-    - name: Pre-Install | Settings | Update WebUI\AlternativeUIEnabled 'qBittorrent.conf' config settings
-      community.general.ini_file:
-        path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
-        section: Preferences
-        option: WebUI\AlternativeUIEnabled
-        value: "{{ 'true' if lookup('role_var', '_alt_webui_enabled', role='qbittorrent') else 'false' }}"
-        no_extra_spaces: true
-        state: present
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-        mode: "0664"
-      when: lookup('role_var', '_alt_webui_enabled', role='qbittorrent')
-
-    - name: Pre-Install | Settings | Update WebUI\AuthSubnetWhitelistEnabled 'qBittorrent.conf' config settings
-      community.general.ini_file:
-        path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
-        section: Preferences
-        option: WebUI\AuthSubnetWhitelistEnabled
-        value: "{{ 'true' if lookup('role_var', '_auth_bypass_enabled', role='qbittorrent') else 'false' }}"
-        no_extra_spaces: true
-        state: present
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-        mode: "0664"
-
-    - name: Pre-Install | Settings | Update WebUI\AuthSubnetWhitelist 'qBittorrent.conf' config settings
-      community.general.ini_file:
-        path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
-        section: Preferences
-        option: WebUI\AuthSubnetWhitelist
-        value: "{{ lookup('role_var', '_auth_subnet_whitelist', role='qbittorrent') }}"
-        no_extra_spaces: true
-        state: present
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-        mode: "0664"
-      when: lookup('role_var', '_auth_bypass_enabled', role='qbittorrent')
-
-    - name: Pre-Install | Settings | Update WebUI\LocalHostAuth 'qBittorrent.conf' config settings
-      community.general.ini_file:
-        path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
-        section: Preferences
-        option: WebUI\LocalHostAuth
-        value: "{{ 'false' if lookup('role_var', '_auth_bypass_enabled', role='qbittorrent') else 'true' }}"
-        no_extra_spaces: true
-        state: present
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-        mode: "0664"

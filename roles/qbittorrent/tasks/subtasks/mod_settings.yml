@@ -1,0 +1,109 @@
+#########################################################################
+# Title:         Saltbox: qBittorrent | Mod Settings                    #
+# Author(s):     modded for saltbox_mod                                 #
+# URL:           https://github.com/saltyorg/Saltbox                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+# Shared by pre-install/main.yml (redeploys, when the conf already exists)
+# and post-install/settings/main.yml (fresh installs). Plain ini_file edits,
+# same as upstream's own settings tasks - applied while the container is
+# stopped, which is what actually makes them stick (confirmed live
+# 2026-09-22: a clean stop -> edit -> start cycle persists every WebUI\*
+# setting tested, including the password hash, contrary to an earlier,
+# contaminated test run during rapid iterative debugging - see STATUS.md).
+#
+# Username/password are intentionally left to upstream's own
+# "Generate Password Hash" step (fresh installs only, using user.name /
+# user.pass) rather than reset here on every redeploy - that would silently
+# overwrite a password the user changed by hand via the WebUI, which
+# upstream's own design avoids.
+- name: Mod Settings | Set WebUI\LocalHostAuth
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\LocalHostAuth
+    value: "{{ 'false' if lookup('role_var', '_auth_bypass_enabled', role='qbittorrent') else 'true' }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+
+- name: Mod Settings | Set WebUI\AuthSubnetWhitelistEnabled
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\AuthSubnetWhitelistEnabled
+    value: "{{ 'true' if lookup('role_var', '_auth_bypass_enabled', role='qbittorrent') else 'false' }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+
+- name: Mod Settings | Set WebUI\AuthSubnetWhitelist
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\AuthSubnetWhitelist
+    value: "{{ lookup('role_var', '_auth_subnet_whitelist', role='qbittorrent') }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+  when: lookup('role_var', '_auth_bypass_enabled', role='qbittorrent')
+
+- name: Mod Settings | Set WebUI\ReverseProxySupportEnabled
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\ReverseProxySupportEnabled
+    value: "{{ lookup('role_var', '_reverse_proxy_enabled', role='qbittorrent') | ternary('true', 'false') }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+
+- name: Mod Settings | Set WebUI\TrustedReverseProxiesList
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\TrustedReverseProxiesList
+    value: "{{ lookup('role_var', '_reverse_proxies_list', role='qbittorrent') }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+
+# Both skipped entirely (qBittorrent's own conf value left untouched) unless
+# explicitly set to a non-empty value in localhost.yml - see defaults/main.yml.
+- name: Mod Settings | Set WebUI\MaxAuthenticationFailCount
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\MaxAuthenticationFailCount
+    value: "{{ lookup('role_var', '_webui_max_auth_fail_count', role='qbittorrent') }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+  when: (lookup('role_var', '_webui_max_auth_fail_count', role='qbittorrent') | string | length) > 0
+
+- name: Mod Settings | Set WebUI\BanDuration
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\BanDuration
+    value: "{{ lookup('role_var', '_webui_ban_duration', role='qbittorrent') }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+  when: (lookup('role_var', '_webui_ban_duration', role='qbittorrent') | string | length) > 0

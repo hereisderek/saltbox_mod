@@ -1,11 +1,19 @@
 #########################################################################
-# Title:            Saltbox: qBittorrent                                #
+# Title:            Saltbox: qBittorrent Mod                            #
 # Author(s):        Kalroth, salty, modded for saltbox_mod              #
 # URL:              https://github.com/saltyorg/Saltbox                 #
 #########################################################################
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# NOTE: this mod is Docker-only. Upstream's host-install mode
+# (qbittorrent_role_host_install) is intentionally not supported here - use
+# the upstream saltbox role directly (`sb install qbittorrent`) if you need
+# a bare-metal qbittorrent-nox install.
+
+- name: Force mod-specific variable overrides
+  ansible.builtin.include_tasks: subtasks/mod_var_overrides.yml
+
 - name: Add DNS record
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
   vars:
@@ -27,17 +35,6 @@
   ansible.builtin.include_tasks: subtasks/legacy.yml
   when: qbittorrent_legacy_service.stat.exists
 
-- name: Check if '{{ qbittorrent_role_service_name }}' exists
-  ansible.builtin.stat:
-    path: "/etc/systemd/system/{{ qbittorrent_role_service_name }}"
-  register: qbittorrent_service
-
-- name: Stop '{{ qbittorrent_role_service_name }}'
-  ansible.builtin.systemd_service:
-    name: "{{ qbittorrent_role_service_name }}"
-    state: stopped
-  when: qbittorrent_service.stat.exists
-
 - name: Remove existing Docker container
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
 
@@ -51,101 +48,19 @@
         low_bound: "{{ lookup('role_var', '_port_peer_low_bound', role='qbittorrent') }}"
         high_bound: "{{ lookup('role_var', '_port_peer_high_bound', role='qbittorrent') }}"
         protocols: ["tcp", "udp"]
-      web:
-        enabled: "{{ lookup('role_var', '_host_install', role='qbittorrent') }}"
-        low_bound: "{{ lookup('role_var', '_port_web_low_bound', role='qbittorrent') }}"
-        high_bound: "{{ lookup('role_var', '_port_web_high_bound', role='qbittorrent') }}"
-        protocols: ["tcp"]
   register: qbittorrent_port_assignment
 
-- name: Remove '{{ qbittorrent_role_service_name }}' file
-  ansible.builtin.file:
-    path: "/etc/systemd/system/{{ qbittorrent_role_service_name }}"
-    state: absent
-  when: qbittorrent_service.stat.exists and (not lookup('role_var', '_host_install', role='qbittorrent'))
-
-- name: Remove '{{ qbittorrent_name }}-nox' file
-  ansible.builtin.file:
-    path: "/usr/bin/{{ qbittorrent_name }}-nox"
-    state: absent
-  when: qbittorrent_service.stat.exists and (not lookup('role_var', '_host_install', role='qbittorrent'))
+- name: Normalize data directory layout
+  ansible.builtin.include_tasks: subtasks/data_layout.yml
 
 - name: Create directories
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
 
-- name: Check Hotio data layout migration
-  when: lookup('role_var', '_is_hotio', role='qbittorrent')
-  block:
-    - name: Check if non-Hotio BT_backup directory exists
-      ansible.builtin.stat:
-        path: "{{ lookup('role_var', '_paths_location', role='qbittorrent') }}/qBittorrent/data/BT_backup"
-      register: qbittorrent_old_bt_backup
-
-    - name: Check if Hotio BT_backup directory exists
-      ansible.builtin.stat:
-        path: "{{ lookup('role_var', '_paths_location', role='qbittorrent') }}/data/BT_backup"
-      register: qbittorrent_hotio_bt_backup
-
-    - name: Migrate BT_backup to Hotio layout
-      ansible.builtin.copy:
-        src: "{{ lookup('role_var', '_paths_location', role='qbittorrent') }}/qBittorrent/data/"
-        dest: "{{ lookup('role_var', '_paths_location', role='qbittorrent') }}/data/"
-        remote_src: true
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-        mode: preserve
-      when:
-        - qbittorrent_old_bt_backup.stat.exists
-        - not qbittorrent_hotio_bt_backup.stat.exists
-
 - name: Pre-Install Tasks
   ansible.builtin.include_tasks: "subtasks/pre-install/main.yml"
 
-- name: Host Install
-  when: lookup('role_var', '_host_install', role='qbittorrent')
-  block:
-    - name: Get host version data
-      ansible.builtin.uri:
-        url: "{{ lookup('role_var', '_host_release_url', role='qbittorrent') }}"
-        method: GET
-        return_content: true
-        status_code: 200
-      register: qbittorrent_host_version_response
-
-    - name: Download 'qbittorrent-nox'
-      ansible.builtin.get_url:
-        url: "{{ lookup('role_var', '_host_download_url', role='qbittorrent') }}"
-        dest: "/usr/bin/{{ qbittorrent_name }}-nox"
-        mode: "0755"
-        force: true
-
-    - name: Import '{{ qbittorrent_name }}.service'
-      ansible.builtin.template:
-        src: "qbittorrent.service.j2"
-        dest: "/etc/systemd/system/{{ qbittorrent_role_service_name }}"
-        mode: "0644"
-        force: true
-
-    - name: Systemd daemon-reload '{{ qbittorrent_role_service_name }}'
-      ansible.builtin.systemd_service:
-        name: "{{ qbittorrent_role_service_name }}"
-        state: stopped
-        enabled: false
-        daemon_reload: true
-
-    - name: Start '{{ qbittorrent_role_service_name }}'
-      ansible.builtin.include_tasks: "{{ resources_tasks_path }}/systemd/manage_service.yml"
-      vars:
-        _service_name: "{{ qbittorrent_role_service_name }}"
-        _service_state: started
-        _service_enabled: true
-        _service_reenable: true
-
-- name: Docker Install
-  when: (not lookup('role_var', '_host_install', role='qbittorrent'))
-  block:
-    - name: Create Docker container
-      ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"
 
 - name: Post-Install Tasks
   ansible.builtin.include_tasks: "subtasks/post-install/main.yml"

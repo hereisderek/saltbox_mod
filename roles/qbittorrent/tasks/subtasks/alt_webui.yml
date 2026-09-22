@@ -80,23 +80,14 @@
 
 - name: Alt WebUI | Determine container root folder
   ansible.builtin.set_fact:
-    alt_webui_container_root: "{{
-      '/config/webui/vuetorrent'
+    qbittorrent_alt_webui_container_root: "{{
+      lookup('role_var', '_alt_webui_container_path', role='qbittorrent') + '/vuetorrent'
       if alt_webui_vuetorrent_subdir.stat.exists and alt_webui_vuetorrent_subdir.stat.isdir
-      else '/config/webui'
+      else lookup('role_var', '_alt_webui_container_path', role='qbittorrent')
     }}"
 
 - name: Alt WebUI | Stop container
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/stop_docker_container.yml"
-  when: not lookup('role_var', '_host_install', role='qbittorrent')
-
-- name: Alt WebUI | Stop service
-  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/systemd/manage_service.yml"
-  vars:
-    _service_name: "{{ lookup('role_var', '_service_name', role='qbittorrent') }}"
-    _service_state: stopped
-    _service_enabled: true
-  when: lookup('role_var', '_host_install', role='qbittorrent')
 
 - name: Alt WebUI | Enable AlternativeUI in 'qBittorrent.conf'
   community.general.ini_file:
@@ -115,7 +106,7 @@
     path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
     section: Preferences
     option: WebUI\RootFolder
-    value: "{{ alt_webui_container_root }}"
+    value: "{{ qbittorrent_alt_webui_container_root }}"
     no_extra_spaces: true
     state: present
     owner: "{{ user.name }}"
@@ -124,12 +115,3 @@
 
 - name: Alt WebUI | Start container
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/start_docker_container.yml"
-  when: not lookup('role_var', '_host_install', role='qbittorrent')
-
-- name: Alt WebUI | Start service
-  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/systemd/manage_service.yml"
-  vars:
-    _service_name: "{{ lookup('role_var', '_service_name', role='qbittorrent') }}"
-    _service_state: started
-    _service_enabled: true
-  when: lookup('role_var', '_host_install', role='qbittorrent')
