@@ -49,6 +49,15 @@ Welcome to the AI instructions and system reference guide for `/opt/saltbox_mod`
    - Resource isolation: paths, network aliases, DNS, Traefik routes, and port arbitration.
    - Authoring and validating custom roles for multi-instance compatibility.
 
+8. **[08. qBittorrent Mod, Upstream Inheritance & Auth Bypass Guide](file:///opt/saltbox_mod/.ai-instructions/08_qbittorrent_mod_and_auth_bypass.md)**
+   - Hybrid upstream inheritance: symlinks and chained task execution (`include_tasks`).
+   - Isolated storage under `/opt/<instance>_mod` with multi-instance support.
+   - Hotio base image auto-detection, volume mapping, and `BT_backup` migration.
+   - Gated third-party WebUI (VueTorrent) download, extraction, and configuration.
+   - Authentication bypass for reverse proxies (`AuthSubnetWhitelist` behind Authelia).
+   - Traefik and Authelia access control: opening entire domains vs specific paths (`_traefik_sso_middleware`, `_traefik_api_endpoint`, `authelia_role_access_control_rules`).
+
+
 ---
 
 ## Important File Paths

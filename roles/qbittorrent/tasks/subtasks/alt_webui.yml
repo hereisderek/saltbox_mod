@@ -1,0 +1,135 @@
+#########################################################################
+# Title:         Saltbox: qBittorrent | Alt WebUI Tasks                 #
+# Author(s):     modded for saltbox_mod                                 #
+# URL:           https://github.com/saltyorg/Saltbox                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+- name: Alt WebUI | Wait for 'qBittorrent.conf' to be present
+  ansible.builtin.wait_for:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    state: present
+    timeout: 120
+
+- name: Alt WebUI | Create webui directory
+  ansible.builtin.file:
+    path: "{{ lookup('role_var', '_alt_webui_dir', role='qbittorrent') }}"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0775"
+
+- name: Alt WebUI | Fetch latest release metadata from GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/{{ _alt_webui_repo }}/releases/latest"
+    method: GET
+    headers:
+      Accept: "application/vnd.github+json"
+    return_content: true
+    status_code: [200, 403, 404]
+  vars:
+    _alt_webui_clean_url: "{{ lookup('role_var', '_alt_webui_url', role='qbittorrent') | regex_replace('\\.git$', '') | regex_replace('/+$', '') }}"
+    _alt_webui_repo: "{{ _alt_webui_clean_url | regex_replace('^https?://github\\.com/', '') }}"
+  register: alt_webui_release_meta
+  when:
+    - "'github.com' in lookup('role_var', '_alt_webui_url', role='qbittorrent')"
+    - "not lookup('role_var', '_alt_webui_url', role='qbittorrent').endswith('.zip')"
+    - "'/download/' not in lookup('role_var', '_alt_webui_url', role='qbittorrent')"
+  ignore_errors: true
+
+- name: Alt WebUI | Set resolved download URL
+  ansible.builtin.set_fact:
+    alt_webui_download_url: "{{
+      (alt_webui_release_meta.json.assets | selectattr('name', 'search', '\\.zip$') | map(attribute='browser_download_url') | first)
+      if (alt_webui_release_meta is defined and alt_webui_release_meta.json is defined and alt_webui_release_meta.json.assets is defined and (alt_webui_release_meta.json.assets | selectattr('name', 'search', '\\.zip$') | list | length > 0))
+      else (
+        lookup('role_var', '_alt_webui_url', role='qbittorrent') + '/releases/latest/download/' + (lookup('role_var', '_alt_webui_url', role='qbittorrent') | split('/') | last | lower) + '.zip'
+        if ('github.com' in lookup('role_var', '_alt_webui_url', role='qbittorrent') and not lookup('role_var', '_alt_webui_url', role='qbittorrent').endswith('.zip') and '/download/' not in lookup('role_var', '_alt_webui_url', role='qbittorrent'))
+        else lookup('role_var', '_alt_webui_url', role='qbittorrent')
+      )
+    }}"
+
+- name: Alt WebUI | Download webui release archive
+  ansible.builtin.get_url:
+    url: "{{ alt_webui_download_url }}"
+    dest: "/tmp/{{ qbittorrent_name }}_alt_webui.zip"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    force: true
+
+- name: Alt WebUI | Extract archive to webui directory
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ qbittorrent_name }}_alt_webui.zip"
+    dest: "{{ lookup('role_var', '_alt_webui_dir', role='qbittorrent') }}"
+    remote_src: true
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0775"
+
+- name: Alt WebUI | Remove temporary archive
+  ansible.builtin.file:
+    path: "/tmp/{{ qbittorrent_name }}_alt_webui.zip"
+    state: absent
+
+- name: Alt WebUI | Check if vuetorrent subdirectory exists
+  ansible.builtin.stat:
+    path: "{{ lookup('role_var', '_alt_webui_dir', role='qbittorrent') }}/vuetorrent"
+  register: alt_webui_vuetorrent_subdir
+
+- name: Alt WebUI | Determine container root folder
+  ansible.builtin.set_fact:
+    alt_webui_container_root: "{{
+      '/config/webui/vuetorrent'
+      if alt_webui_vuetorrent_subdir.stat.exists and alt_webui_vuetorrent_subdir.stat.isdir
+      else '/config/webui'
+    }}"
+
+- name: Alt WebUI | Stop container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/stop_docker_container.yml"
+  when: not lookup('role_var', '_host_install', role='qbittorrent')
+
+- name: Alt WebUI | Stop service
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/systemd/manage_service.yml"
+  vars:
+    _service_name: "{{ lookup('role_var', '_service_name', role='qbittorrent') }}"
+    _service_state: stopped
+    _service_enabled: true
+  when: lookup('role_var', '_host_install', role='qbittorrent')
+
+- name: Alt WebUI | Enable AlternativeUI in 'qBittorrent.conf'
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\AlternativeUIEnabled
+    value: "true"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+
+- name: Alt WebUI | Set RootFolder in 'qBittorrent.conf'
+  community.general.ini_file:
+    path: "{{ lookup('role_var', '_paths_conf', role='qbittorrent') }}"
+    section: Preferences
+    option: WebUI\RootFolder
+    value: "{{ alt_webui_container_root }}"
+    no_extra_spaces: true
+    state: present
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+
+- name: Alt WebUI | Start container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/start_docker_container.yml"
+  when: not lookup('role_var', '_host_install', role='qbittorrent')
+
+- name: Alt WebUI | Start service
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/systemd/manage_service.yml"
+  vars:
+    _service_name: "{{ lookup('role_var', '_service_name', role='qbittorrent') }}"
+    _service_state: started
+    _service_enabled: true
+  when: lookup('role_var', '_host_install', role='qbittorrent')
