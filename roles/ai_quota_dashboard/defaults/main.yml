@@ -1,0 +1,89 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | ai_quota_dashboard | Defaults              #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+##################################################################################
+
+################################
+# Basics
+################################
+ai_quota_dashboard_name: ai_quota_dashboard
+
+################################
+# Paths
+################################
+ai_quota_dashboard_role_paths_folder: "{{ ai_quota_dashboard_name }}"
+ai_quota_dashboard_role_paths_location: "{{ server_appdata_path }}/{{ ai_quota_dashboard_role_paths_folder }}"
+ai_quota_dashboard_role_paths_folders_list:
+  - "{{ ai_quota_dashboard_role_paths_location }}"
+  - "{{ ai_quota_dashboard_role_paths_location }}/data"
+
+################################
+# Web
+################################
+ai_quota_dashboard_role_web_subdomain: "ai-quota"
+ai_quota_dashboard_role_web_domain: "{{ user.domain }}"
+ai_quota_dashboard_role_web_port: "3456"
+ai_quota_dashboard_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='ai_quota_dashboard') + '.' + lookup('role_var', '_web_domain', role='ai_quota_dashboard') if (lookup('role_var', '_web_subdomain', role='ai_quota_dashboard') | length > 0) else lookup('role_var', '_web_domain', role='ai_quota_dashboard')) }}"
+
+################################
+# DNS
+################################
+ai_quota_dashboard_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='ai_quota_dashboard') }}"
+ai_quota_dashboard_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='ai_quota_dashboard') }}"
+ai_quota_dashboard_role_dns_proxy: "{{ dns_proxied }}"
+
+################################
+# Traefik (Reverse Proxy & Auth)
+################################
+ai_quota_dashboard_role_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+ai_quota_dashboard_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+ai_quota_dashboard_role_traefik_middleware_custom: ""
+ai_quota_dashboard_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+ai_quota_dashboard_role_traefik_enabled: true
+ai_quota_dashboard_role_traefik_api_enabled: false
+ai_quota_dashboard_role_traefik_api_endpoint: ""
+
+################################
+# Docker
+################################
+ai_quota_dashboard_role_docker_container: "{{ ai_quota_dashboard_name }}"
+
+# Image
+ai_quota_dashboard_role_docker_image_pull: true
+ai_quota_dashboard_role_docker_image_repo: "ghcr.io/hereisderek/ai-quota-dashboard"
+ai_quota_dashboard_role_docker_image_tag: "latest"
+ai_quota_dashboard_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='ai_quota_dashboard') }}:{{ lookup('role_var', '_docker_image_tag', role='ai_quota_dashboard') }}"
+
+# Envs
+ai_quota_dashboard_role_docker_envs_default:
+  TZ: "{{ tz }}"
+  DATA_DIR: "/data"
+  PORT: "{{ lookup('role_var', '_web_port', role='ai_quota_dashboard') }}"
+  HOST: "0.0.0.0"
+  PUBLIC_URL: "{{ lookup('role_var', '_web_url', role='ai_quota_dashboard') }}"
+ai_quota_dashboard_role_docker_envs_custom: {}
+ai_quota_dashboard_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='ai_quota_dashboard') | combine(lookup('role_var', '_docker_envs_custom', role='ai_quota_dashboard')) }}"
+
+# Volumes
+ai_quota_dashboard_role_docker_volumes_default:
+  - "{{ ai_quota_dashboard_role_paths_location }}/data:/data"
+ai_quota_dashboard_role_docker_volumes_custom: []
+ai_quota_dashboard_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='ai_quota_dashboard') + lookup('role_var', '_docker_volumes_custom', role='ai_quota_dashboard') }}"
+
+# Ports
+ai_quota_dashboard_role_docker_ports_defaults: []
+ai_quota_dashboard_role_docker_ports_custom: []
+ai_quota_dashboard_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='ai_quota_dashboard') + lookup('role_var', '_docker_ports_custom', role='ai_quota_dashboard') }}"
+
+# Network & Hostname
+ai_quota_dashboard_role_docker_hostname: "{{ ai_quota_dashboard_name }}"
+ai_quota_dashboard_role_docker_networks_alias: "{{ ai_quota_dashboard_name }}"
+ai_quota_dashboard_role_docker_networks_default: []
+ai_quota_dashboard_role_docker_networks_custom: []
+ai_quota_dashboard_role_docker_networks: "{{ docker_networks_common + lookup('role_var', '_docker_networks_default', role='ai_quota_dashboard') + lookup('role_var', '_docker_networks_custom', role='ai_quota_dashboard') }}"
+
+# Operations
+ai_quota_dashboard_role_docker_restart_policy: unless-stopped
+ai_quota_dashboard_role_docker_state: started

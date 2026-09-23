@@ -126,6 +126,7 @@ This repository maintains custom Ansible roles and integrations extending the st
 
 | Service | Tag | Description | Detailed Technical Docs |
 |---|---|---|---|
+| **AI Quota Dashboard** | `ai-quota-dashboard` | Self-hosted dashboard tracking AI provider quotas (Claude, Gemini, …) at `ai-quota.<domain>` | [docs/ai_quota_dashboard.md](docs/ai_quota_dashboard.md) |
 | **ALACarte (Apple Music)** | `alacarte-apple-music` | Self-hosted Apple Music downloader with lossless ALAC-to-FLAC conversion & lyrics | [docs/alacarte_apple_music.md](docs/alacarte_apple_music.md) |
 | **Calibre-Web Automated** | `calibre-web-automated` | eBook library manager with ThemePark integration and universal calibre mod | [docs/calibre_web_automated.md](docs/calibre_web_automated.md) |
 | **Calibre-Web Downloader** | `calibre-web-automated-downloader` | Automated book downloader integrating Anna's Archive with Cloudflare bypass | [docs/calibre_web_automated_downloader.md](docs/calibre_web_automated_downloader.md) |

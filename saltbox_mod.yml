@@ -34,3 +34,4 @@
     - { role: solara, tags: ['solara'] }
     - { role: alacarte_apple_music, tags: ['alacarte-apple-music'] }
     - { role: qbittorrent, tags: ['qbittorrent', 'mod-qbittorrent'] }
+    - { role: ai_quota_dashboard, tags: ['ai-quota-dashboard'] }
