@@ -1,0 +1,7 @@
+[Unit]
+Description=Clean stuck Sonarr/Radarr queue items (fake releases, mismatches)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/saltbox_mod/scripts/arr_queue_cleanup.py
+User=derek
