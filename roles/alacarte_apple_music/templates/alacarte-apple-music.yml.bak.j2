@@ -16,8 +16,10 @@ http:
         - "{{ lookup('role_var', '_traefik_sso_middleware', role='alacarte_apple_music', default='') }}"
 {% endif %}
       service: "{{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}"
+      priority: 20
       tls:
         certResolver: "{{ lookup('role_var', '_traefik_certresolver', role='alacarte_apple_music') }}"
+        options: "securetls@file"
 
     {{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}:
       entryPoints:
@@ -32,8 +34,10 @@ http:
         - "{{ lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music', default='') }}"
 {% endif %}
       service: "{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}"
+      priority: 30
       tls:
         certResolver: "{{ lookup('role_var', '_traefik_certresolver', role='alacarte_apple_music') }}"
+        options: "securetls@file"
 
   services:
     {{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}:
