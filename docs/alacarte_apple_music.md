@@ -90,10 +90,12 @@ alacarte_apple_music_role_docker_envs_custom:
   AUTH_DISABLED: "true" # Bypass secondary web password behind Authelia
   AMDL_MUSIC_PATH: "/music"
 
-# Importer SSO authentication wall:
-# Leave undefined (or set to "{{ traefik_default_sso_middleware }}") to require Authelia login for /import.
-# Set to "" to make /import publicly accessible for sharing with friends while keeping / behind Authelia.
-alacarte_apple_music_role_importer_traefik_sso_middleware: ""
+# Enable importer container (default is false)
+alacarte_apple_music_role_importer_enabled: true
+
+# Importer Authelia SSO wall flag:
+# Defaults to true (behind Authelia). Set to false to make /import publicly accessible while / remains protected by Authelia.
+alacarte_apple_music_role_importer_sso_enabled: false
 
 # Importer environment variable overrides (e.g. User-Agents or rate limit pacing)
 alacarte_apple_music_role_importer_envs_custom:

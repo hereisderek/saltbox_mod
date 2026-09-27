@@ -145,6 +145,7 @@ alacarte_apple_music_role_depends_on: "{{ lookup('role_var', '_wrapper_container
 # Importer Container (Batch Import Service)
 ################################
 alacarte_apple_music_role_importer_container: "{{ alacarte_apple_music_name }}-importer"
+alacarte_apple_music_role_importer_enabled: false
 alacarte_apple_music_role_importer_image_repo: "ghcr.io/hereisderek/alacarte-importer"
 alacarte_apple_music_role_importer_image_tag: "latest"
 alacarte_apple_music_role_importer_image: "{{ lookup('role_var', '_importer_image_repo', role='alacarte_apple_music') }}:{{ lookup('role_var', '_importer_image_tag', role='alacarte_apple_music') }}"
@@ -155,7 +156,8 @@ alacarte_apple_music_role_importer_auth_enabled: false
 
 # Importer Traefik & SSO
 alacarte_apple_music_role_importer_traefik_enabled: true
-alacarte_apple_music_role_importer_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+alacarte_apple_music_role_importer_sso_enabled: true
+alacarte_apple_music_role_importer_traefik_sso_middleware: "{{ traefik_default_sso_middleware if (lookup('role_var', '_importer_sso_enabled', role='alacarte_apple_music') | bool) else '' }}"
 alacarte_apple_music_role_importer_traefik_middleware_default: "{{ traefik_default_middleware }}"
 alacarte_apple_music_role_importer_traefik_middleware_custom: ""
 alacarte_apple_music_role_importer_traefik_middleware: "{{ ((lookup('role_var', '_importer_traefik_middleware_default', role='alacarte_apple_music') + (',' + lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') if (lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') | length > 0) else '')) + (',' + lookup('role_var', '_importer_traefik_middleware_custom', role='alacarte_apple_music') if (lookup('role_var', '_importer_traefik_middleware_custom', role='alacarte_apple_music') | length > 0) else '')) }}"

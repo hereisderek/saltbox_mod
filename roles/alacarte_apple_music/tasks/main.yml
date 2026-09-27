@@ -56,19 +56,32 @@
 
 - name: Set importer Traefik labels
   ansible.builtin.set_fact:
-    alacarte_apple_music_importer_labels:
-      com.github.saltbox.saltbox_managed: "true"
-      traefik.enable: "{{ lookup('role_var', '_importer_traefik_enabled', role='alacarte_apple_music') | string | lower }}"
-      "traefik.http.routers.{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}.entrypoints": "websecure"
-      "traefik.http.routers.{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}.rule": "Host(`{{ lookup('role_var', '_web_host', role='alacarte_apple_music') }}`) && PathPrefix(`{{ lookup('role_var', '_importer_base_path', role='alacarte_apple_music') }}`)"
-      "traefik.http.routers.{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}.tls.certresolver": "{{ lookup('role_var', '_traefik_certresolver', role='alacarte_apple_music') }}"
-      "traefik.http.routers.{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}.service": "{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}"
-      "traefik.http.services.{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}.loadbalancer.server.port": "{{ lookup('role_var', '_importer_port', role='alacarte_apple_music') | string }}"
+    alacarte_apple_music_importer_labels: >-
+      {{
+        {
+          'com.github.saltbox.saltbox_managed': 'true',
+          'traefik.enable': (lookup('role_var', '_importer_traefik_enabled', role='alacarte_apple_music') | string | lower),
+          'traefik.http.routers.' + lookup('role_var', '_importer_container', role='alacarte_apple_music') + '.entrypoints': 'websecure',
+          'traefik.http.routers.' + lookup('role_var', '_importer_container', role='alacarte_apple_music') + '.rule': 'Host(`' + lookup('role_var', '_web_host', role='alacarte_apple_music') + '`) && PathPrefix(`' + lookup('role_var', '_importer_base_path', role='alacarte_apple_music') + '`)',
+          'traefik.http.routers.' + lookup('role_var', '_importer_container', role='alacarte_apple_music') + '.tls.certresolver': lookup('role_var', '_traefik_certresolver', role='alacarte_apple_music'),
+          'traefik.http.routers.' + lookup('role_var', '_importer_container', role='alacarte_apple_music') + '.service': lookup('role_var', '_importer_container', role='alacarte_apple_music'),
+          'traefik.http.services.' + lookup('role_var', '_importer_container', role='alacarte_apple_music') + '.loadbalancer.server.port': (lookup('role_var', '_importer_port', role='alacarte_apple_music') | string)
+        }
+      }}
+  when: lookup('role_var', '_importer_enabled', role='alacarte_apple_music') | bool
 
 - name: Add Traefik middlewares to importer labels
   ansible.builtin.set_fact:
-    alacarte_apple_music_importer_labels: "{{ alacarte_apple_music_importer_labels | combine({ 'traefik.http.routers.' + lookup('role_var', '_importer_container', role='alacarte_apple_music') + '.middlewares': lookup('role_var', '_importer_traefik_middleware', role='alacarte_apple_music') }) }}"
-  when: lookup('role_var', '_importer_traefik_middleware', role='alacarte_apple_music') | length > 0
+    alacarte_apple_music_importer_labels: >-
+      {{
+        alacarte_apple_music_importer_labels
+        | combine({
+            'traefik.http.routers.' + lookup('role_var', '_importer_container', role='alacarte_apple_music') + '.middlewares': lookup('role_var', '_importer_traefik_middleware', role='alacarte_apple_music')
+          })
+      }}
+  when:
+    - lookup('role_var', '_importer_enabled', role='alacarte_apple_music') | bool
+    - lookup('role_var', '_importer_traefik_middleware', role='alacarte_apple_music') | length > 0
 
 - name: Create importer Docker container
   community.docker.docker_container:
@@ -78,7 +91,7 @@
     platform: linux/amd64
     state: started
     restart_policy: unless-stopped
-    network_mode: "{{ docker_networks_name_common }}"
+    container_default_behavior: compatibility
     networks:
       - name: "{{ docker_networks_name_common }}"
         aliases:
@@ -88,6 +101,7 @@
     volumes: "{{ lookup('role_var', '_importer_volumes', role='alacarte_apple_music') }}"
     labels: "{{ (docker_labels_saltbox | default({})) | combine(alacarte_apple_music_importer_labels) }}"
     tls_hostname: localhost
+  when: lookup('role_var', '_importer_enabled', role='alacarte_apple_music') | bool
 
 - name: Check if /opt/traefik directory exists
   ansible.builtin.stat:

@@ -26,8 +26,8 @@ Managed as a **single unified Saltbox service** orchestrating three collaboratin
   - Importer: `https://<subdomain>.<domain>/import`
 - **Authelia SSO & Access Control**:
   - Web portal protected behind Authelia SSO by default. Can set `AUTH_DISABLED: "true"` in `localhost.yml` to skip secondary in-app auth.
-  - Importer protected behind Authelia SSO by default via `alacarte_apple_music_role_importer_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"`.
-  - Override `alacarte_apple_music_role_importer_traefik_sso_middleware: ""` in `localhost.yml` to make the `/import` page publicly accessible while keeping the main web UI private.
+  - Importer creation is gated by `alacarte_apple_music_role_importer_enabled` (default `false`). Set to `true` in `localhost.yml` to enable.
+  - Importer SSO is gated by `alacarte_apple_music_role_importer_sso_enabled` (default `true`). Set to `false` in `localhost.yml` to make the `/import` page publicly accessible while keeping the main web UI private behind Authelia.
 - **Unblocked Internal Inter-Container Communication**:
   - `importer` communicates directly with `web` over the private Docker network (`http://alacarte-apple-music:7373`) using `INTERNAL_API_KEY` header `x-internal-key`, bypassing Traefik/Authelia.
   - `web` communicates directly with `wrapper` over the private Docker network (`http://alacarte-apple-music-wrapper:40020`).
