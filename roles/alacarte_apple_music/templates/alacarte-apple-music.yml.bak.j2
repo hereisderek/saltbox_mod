@@ -1,0 +1,47 @@
+# Sample Traefik Dynamic File Configuration for ALACarte Apple Music + Importer
+# NOTE: This file is disabled (.bak extension). To use file-based routing instead of
+# Docker labels, copy or rename this file to /opt/traefik/alacarte-apple-music.yml.
+http:
+  routers:
+    {{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}:
+      entryPoints:
+        - "websecure"
+      rule: "Host(`{{ lookup('role_var', '_web_host', role='alacarte_apple_music') }}`)"
+      middlewares:
+        - "globalHeaders@file"
+        - "secureHeaders@file"
+        - "robotHeaders@file"
+        - "cloudflarewarp@docker"
+{% if lookup('role_var', '_traefik_sso_middleware', role='alacarte_apple_music') | length > 0 %}
+        - "{{ lookup('role_var', '_traefik_sso_middleware', role='alacarte_apple_music') }}"
+{% endif %}
+      service: "{{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}"
+      tls:
+        certResolver: "{{ lookup('role_var', '_traefik_certresolver', role='alacarte_apple_music') }}"
+
+    {{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}:
+      entryPoints:
+        - "websecure"
+      rule: "Host(`{{ lookup('role_var', '_web_host', role='alacarte_apple_music') }}`) && PathPrefix(`{{ lookup('role_var', '_importer_base_path', role='alacarte_apple_music') }}`)"
+      middlewares:
+        - "globalHeaders@file"
+        - "secureHeaders@file"
+        - "robotHeaders@file"
+        - "cloudflarewarp@docker"
+{% if lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') | length > 0 %}
+        - "{{ lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') }}"
+{% endif %}
+      service: "{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}"
+      tls:
+        certResolver: "{{ lookup('role_var', '_traefik_certresolver', role='alacarte_apple_music') }}"
+
+  services:
+    {{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}:
+      loadBalancer:
+        servers:
+          - url: "http://{{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}:{{ lookup('role_var', '_web_port', role='alacarte_apple_music') }}"
+
+    {{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}:
+      loadBalancer:
+        servers:
+          - url: "http://{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}:{{ lookup('role_var', '_importer_port', role='alacarte_apple_music') }}"

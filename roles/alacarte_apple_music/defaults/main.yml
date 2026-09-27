@@ -31,6 +31,12 @@ alacarte_apple_music_role_web_subdomain: "{{ alacarte_apple_music_name }}"
 alacarte_apple_music_role_web_domain: "{{ user.domain }}"
 alacarte_apple_music_role_web_port: "7373"
 alacarte_apple_music_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='alacarte_apple_music') + '.' + lookup('role_var', '_web_domain', role='alacarte_apple_music') if (lookup('role_var', '_web_subdomain', role='alacarte_apple_music') | length > 0) else lookup('role_var', '_web_domain', role='alacarte_apple_music')) }}"
+alacarte_apple_music_role_web_host: "{{ (lookup('role_var', '_web_subdomain', role='alacarte_apple_music') + '.' + lookup('role_var', '_web_domain', role='alacarte_apple_music')) if (lookup('role_var', '_web_subdomain', role='alacarte_apple_music') | length > 0) else lookup('role_var', '_web_domain', role='alacarte_apple_music') }}"
+
+################################
+# Shared Internal API Key
+################################
+alacarte_apple_music_role_internal_api_key: "{{ user.pass }}{{ user.pass }}"
 
 ################################
 # DNS
@@ -105,6 +111,7 @@ alacarte_apple_music_role_docker_envs_default:
   AMDL_SECRET_KEY: ""
   AUTH_DISABLED: "false" # Set true in localhost.yml if using only Authelia SSO
   TRUST_PROXY: "loopback"
+  INTERNAL_API_KEY: "{{ lookup('role_var', '_internal_api_key', role='alacarte_apple_music') }}"
 alacarte_apple_music_role_docker_envs_custom: {}
 alacarte_apple_music_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='alacarte_apple_music') | combine(lookup('role_var', '_docker_envs_custom', role='alacarte_apple_music')) }}"
 
@@ -133,3 +140,45 @@ alacarte_apple_music_role_docker_state: started
 
 # Dependencies
 alacarte_apple_music_role_depends_on: "{{ lookup('role_var', '_wrapper_container', role='alacarte_apple_music') }}"
+
+################################
+# Importer Container (Batch Import Service)
+################################
+alacarte_apple_music_role_importer_container: "{{ alacarte_apple_music_name }}-importer"
+alacarte_apple_music_role_importer_image_repo: "ghcr.io/hereisderek/alacarte-importer"
+alacarte_apple_music_role_importer_image_tag: "latest"
+alacarte_apple_music_role_importer_image: "{{ lookup('role_var', '_importer_image_repo', role='alacarte_apple_music') }}:{{ lookup('role_var', '_importer_image_tag', role='alacarte_apple_music') }}"
+
+alacarte_apple_music_role_importer_port: "8080"
+alacarte_apple_music_role_importer_base_path: "/import"
+alacarte_apple_music_role_importer_auth_enabled: false
+
+# Importer Traefik & SSO
+alacarte_apple_music_role_importer_traefik_enabled: true
+alacarte_apple_music_role_importer_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+alacarte_apple_music_role_importer_traefik_middleware_default: "{{ traefik_default_middleware }}"
+alacarte_apple_music_role_importer_traefik_middleware_custom: ""
+alacarte_apple_music_role_importer_traefik_middleware: "{{ ((lookup('role_var', '_importer_traefik_middleware_default', role='alacarte_apple_music') + (',' + lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') if (lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') | length > 0) else '')) + (',' + lookup('role_var', '_importer_traefik_middleware_custom', role='alacarte_apple_music') if (lookup('role_var', '_importer_traefik_middleware_custom', role='alacarte_apple_music') | length > 0) else '')) }}"
+
+# Importer Envs
+alacarte_apple_music_role_importer_envs_default:
+  PUID: "{{ uid }}"
+  PGID: "{{ gid }}"
+  TZ: "{{ tz }}"
+  PORT: "{{ lookup('role_var', '_importer_port', role='alacarte_apple_music') }}"
+  BASE_PATH: "{{ lookup('role_var', '_importer_base_path', role='alacarte_apple_music') }}"
+  IMPORTER_BASE_PATH: "{{ lookup('role_var', '_importer_base_path', role='alacarte_apple_music') }}"
+  BACKEND_URL: "http://{{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}:{{ lookup('role_var', '_web_port', role='alacarte_apple_music') }}"
+  INTERNAL_API_KEY: "{{ lookup('role_var', '_internal_api_key', role='alacarte_apple_music') }}"
+  AUTH_ENABLED: "{{ lookup('role_var', '_importer_auth_enabled', role='alacarte_apple_music') | string | lower }}"
+  TRUST_PROXY: "loopback"
+  IMPORTER_USER_AGENT: ""
+alacarte_apple_music_role_importer_envs_custom: {}
+alacarte_apple_music_role_importer_docker_envs_custom: {}
+alacarte_apple_music_role_importer_envs: "{{ lookup('role_var', '_importer_envs_default', role='alacarte_apple_music') | combine(lookup('role_var', '_importer_envs_custom', role='alacarte_apple_music')) | combine(lookup('role_var', '_importer_docker_envs_custom', role='alacarte_apple_music')) }}"
+
+# Importer Volumes (Optional overrides)
+alacarte_apple_music_role_importer_volumes_default: []
+alacarte_apple_music_role_importer_volumes_custom: []
+alacarte_apple_music_role_importer_volumes: "{{ lookup('role_var', '_importer_volumes_default', role='alacarte_apple_music') + lookup('role_var', '_importer_volumes_custom', role='alacarte_apple_music') }}"
+
