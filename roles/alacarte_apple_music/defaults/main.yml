@@ -157,6 +157,7 @@ alacarte_apple_music_role_importer_auth_enabled: false
 # Importer Traefik & SSO
 alacarte_apple_music_role_importer_traefik_enabled: true
 alacarte_apple_music_role_importer_sso_enabled: true
+alacarte_apple_music_role_importer_traefik_sso_middleware: "{{ traefik_default_sso_middleware if (lookup('role_var', '_importer_sso_enabled', role='alacarte_apple_music') | bool) else '' }}"
 alacarte_apple_music_role_importer_traefik_middleware_custom: ""
 alacarte_apple_music_role_importer_traefik_middleware: "{{ (traefik_default_middleware if (lookup('role_var', '_importer_sso_enabled', role='alacarte_apple_music') | bool) else traefik_default_middleware_api) + (',' + lookup('role_var', '_importer_traefik_middleware_custom', role='alacarte_apple_music') if (lookup('role_var', '_importer_traefik_middleware_custom', role='alacarte_apple_music') | length > 0) else '') }}"
 

@@ -12,8 +12,8 @@ http:
         - "secureHeaders@file"
         - "robotHeaders@file"
         - "cloudflarewarp@docker"
-{% if lookup('role_var', '_traefik_sso_middleware', role='alacarte_apple_music') | length > 0 %}
-        - "{{ lookup('role_var', '_traefik_sso_middleware', role='alacarte_apple_music') }}"
+{% if lookup('role_var', '_traefik_sso_middleware', role='alacarte_apple_music', default='') | length > 0 %}
+        - "{{ lookup('role_var', '_traefik_sso_middleware', role='alacarte_apple_music', default='') }}"
 {% endif %}
       service: "{{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}"
       tls:
@@ -28,8 +28,8 @@ http:
         - "secureHeaders@file"
         - "robotHeaders@file"
         - "cloudflarewarp@docker"
-{% if lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') | length > 0 %}
-        - "{{ lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music') }}"
+{% if lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music', default='') | length > 0 %}
+        - "{{ lookup('role_var', '_importer_traefik_sso_middleware', role='alacarte_apple_music', default='') }}"
 {% endif %}
       service: "{{ lookup('role_var', '_importer_container', role='alacarte_apple_music') }}"
       tls:
