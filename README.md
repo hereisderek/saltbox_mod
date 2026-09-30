@@ -136,6 +136,7 @@ This repository maintains custom Ansible roles and integrations extending the st
 | **LXServer** | `lxserver` | LX Music data synchronization server and WebPlayer with music library streaming | [docs/lxserver.md](docs/lxserver.md) |
 | **MeTube** | `metube` | Web GUI for downloading video and audio from YouTube using yt-dlp | [docs/metube.md](docs/metube.md) |
 | **Music-Tag-Web** | `music-tag-web` | Web-based audio metadata and ID3 tagging editor for the music library | [docs/music_tag_web.md](docs/music_tag_web.md) |
+| **Octo-Fiesta** | `octo-fiesta` | Subsonic proxy that auto-fetches missing songs from Deezer/Qobuz/Tidal/Yandex into the Navidrome library | [docs/octo_fiesta.md](docs/octo_fiesta.md) |
 | **Restreamer** | `restreamer` | Live video streaming server with VA-API hardware acceleration | [docs/restreamer.md](docs/restreamer.md) |
 | **Scrypted** | `scrypted` | High-performance home security camera video integration platform and NVR | [docs/scrypted.md](docs/scrypted.md) |
 | **Simple SQ Music Plus** | `simple_sq_music_plus` | Music streaming and library management platform | [docs/simple_sq_music_plus.md](docs/simple_sq_music_plus.md) |

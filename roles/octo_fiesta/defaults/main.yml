@@ -1,0 +1,112 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | octo_fiesta | Defaults                     #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+# Upstream Source: https://github.com/filipton/octo-fiesta                       #
+##################################################################################
+
+################################
+# Basics
+################################
+octo_fiesta_name: octo-fiesta
+
+################################
+# Paths
+################################
+octo_fiesta_role_paths_folder: "{{ octo_fiesta_name }}"
+octo_fiesta_role_paths_location: "{{ server_appdata_path }}/{{ octo_fiesta_role_paths_folder }}"
+octo_fiesta_role_paths_folders_list:
+  - "{{ octo_fiesta_role_paths_location }}"
+
+################################
+# Web
+################################
+octo_fiesta_role_web_subdomain: "{{ octo_fiesta_name }}"
+octo_fiesta_role_web_domain: "{{ user.domain }}"
+octo_fiesta_role_web_port: "8080"
+octo_fiesta_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='octo_fiesta') + '.' + lookup('role_var', '_web_domain', role='octo_fiesta') if (lookup('role_var', '_web_subdomain', role='octo_fiesta') | length > 0) else lookup('role_var', '_web_domain', role='octo_fiesta')) }}"
+
+################################
+# DNS
+################################
+octo_fiesta_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='octo_fiesta') }}"
+octo_fiesta_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='octo_fiesta') }}"
+octo_fiesta_role_dns_proxy: "{{ dns_proxied }}"
+
+################################
+# Traefik (Reverse Proxy & Auth)
+################################
+# Subsonic-compatible clients authenticate with the Subsonic API scheme (salt/token or
+# basic auth), not an interactive browser login, so Authelia SSO must stay off here -
+# same reasoning as the upstream Sandbox "navidrome" role, which leaves this empty too.
+octo_fiesta_role_traefik_sso_middleware: ""
+octo_fiesta_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+octo_fiesta_role_traefik_middleware_custom: ""
+octo_fiesta_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+octo_fiesta_role_traefik_enabled: true
+octo_fiesta_role_traefik_api_enabled: false
+octo_fiesta_role_traefik_api_endpoint: ""
+
+################################
+# Subsonic (Navidrome) Upstream
+################################
+# Reached over the internal "saltbox" Docker network using the target server's network
+# alias, not a public URL - keeps the proxy -> Subsonic-server hop off the public internet.
+octo_fiesta_role_subsonic_container: navidrome
+octo_fiesta_role_subsonic_port: "4533"
+octo_fiesta_role_subsonic_url: "http://{{ octo_fiesta_role_subsonic_container }}:{{ octo_fiesta_role_subsonic_port }}"
+
+################################
+# Docker
+################################
+octo_fiesta_role_docker_container: "{{ octo_fiesta_name }}"
+octo_fiesta_role_docker_user: "{{ uid }}:{{ gid }}"
+
+# Image
+octo_fiesta_role_docker_image_pull: true
+octo_fiesta_role_docker_image_repo: "ghcr.io/filipton/octo-fiesta"
+# Upstream has no "latest" tag yet (no v* release cut) - only "dev" (built off the dev
+# branch) and per-commit SHAs. Switch to a pinned SHA or your own tag once a stable
+# release exists.
+octo_fiesta_role_docker_image_tag: "dev"
+octo_fiesta_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='octo_fiesta') }}:{{ lookup('role_var', '_docker_image_tag', role='octo_fiesta') }}"
+
+# Envs
+octo_fiesta_role_docker_envs_default:
+  TZ: "{{ tz }}"
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:{{ octo_fiesta_role_web_port }}"
+  Library__DownloadPath: "/app/downloads"
+  # Subsonic (Navidrome) connection - internal Docker alias, never a public URL
+  Subsonic__Url: "{{ octo_fiesta_role_subsonic_url }}"
+  Subsonic__AdminUsername: "{{ user.name }}"
+  Subsonic__AdminPassword: "{{ user.pass }}"
+  Subsonic__MusicService: "Deezer"
+  Subsonic__StorageMode: "Permanent"
+  Subsonic__EnableExternalPlaylists: "true"
+  Subsonic__DownloadMode: "Track"
+octo_fiesta_role_docker_envs_custom: {}
+octo_fiesta_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='octo_fiesta') | combine(lookup('role_var', '_docker_envs_custom', role='octo_fiesta')) }}"
+
+# Volumes (Keep generic! Map /config only. User maps downloads path in inventory)
+octo_fiesta_role_docker_volumes_default:
+  - "{{ octo_fiesta_role_paths_location }}:/config"
+octo_fiesta_role_docker_volumes_custom: []
+octo_fiesta_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='octo_fiesta') + lookup('role_var', '_docker_volumes_custom', role='octo_fiesta') }}"
+
+# Ports (Traefik reaches the container over the Docker network; no host bind needed)
+octo_fiesta_role_docker_ports_defaults: []
+octo_fiesta_role_docker_ports_custom: []
+octo_fiesta_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='octo_fiesta') + lookup('role_var', '_docker_ports_custom', role='octo_fiesta') }}"
+
+# Network & Hostname
+octo_fiesta_role_docker_hostname: "{{ octo_fiesta_name }}"
+octo_fiesta_role_docker_networks_alias: "{{ octo_fiesta_name }}"
+octo_fiesta_role_docker_networks_default: []
+octo_fiesta_role_docker_networks_custom: []
+octo_fiesta_role_docker_networks: "{{ docker_networks_common + lookup('role_var', '_docker_networks_default', role='octo_fiesta') + lookup('role_var', '_docker_networks_custom', role='octo_fiesta') }}"
+
+# Operations
+octo_fiesta_role_docker_restart_policy: unless-stopped
+octo_fiesta_role_docker_state: started

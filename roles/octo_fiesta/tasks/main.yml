@@ -1,0 +1,65 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | octo_fiesta | Tasks                        #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+##################################################################################
+
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('role_var', '_dns_record') }}"
+    dns_zone: "{{ lookup('role_var', '_dns_zone') }}"
+    dns_proxy: "{{ lookup('role_var', '_dns_proxy') }}"
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Create directories
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
+
+- name: Check if dotnet is installed
+  ansible.builtin.command: which dotnet
+  register: octo_fiesta_dotnet_check
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+
+- name: Build gdstudio-proxy plugin if dotnet is installed
+  ansible.builtin.command:
+    cmd: ./build.sh
+    chdir: "{{ role_path }}/files/gdstudio-proxy-apple"
+  when:
+    - octo_fiesta_dotnet_check.rc is defined
+    - octo_fiesta_dotnet_check.rc == 0
+  failed_when: false
+  ignore_errors: true
+
+- name: Ensure octo-fiesta plugin directory exists
+  ansible.builtin.file:
+    path: "{{ lookup('role_var', '_paths_location', role='octo_fiesta') }}/gdstudio"
+    state: directory
+    owner: "{{ uid | default(1000) }}"
+    group: "{{ gid | default(1000) }}"
+    mode: "0755" 
+  ignore_errors: true
+
+- name: Copy plugin DLLs to octo-fiesta appdata directory
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/gdstudio-proxy-apple/dist/{{ item }}"
+    dest: "{{ lookup('role_var', '_paths_location', role='octo_fiesta') }}/gdstudio/{{ item }}"
+    owner: "{{ uid | default(1000) }}"
+    group: "{{ gid | default(1000) }}"
+    mode: "0644"
+  loop:
+    - Acornima.dll
+    - Jint.dll
+    - gdstudio-proxy.dll
+  failed_when: false
+  ignore_errors: true
+
+- name: Debug Docker container creation
+  ansible.builtin.include_tasks: "{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml"
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"
