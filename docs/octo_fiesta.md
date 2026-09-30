@@ -86,10 +86,10 @@ Navidrome instance or admin account differs from the Saltbox defaults.
 
 ### GDStudio & Apple Source (gdstudio-proxy plugin)
 
-When using GDStudio with `GDSTUDIO__SOURCE: "apple"`:
-- **Request Signing**: Apple Music queries on GDStudio require runtime `s=` signatures derived from the site JavaScript. The `gdstudio-proxy` handler signs outgoing requests using an in-memory Jint JS engine and refreshes server clock offsets.
-- **Relative URLs**: Audio URLs returned by GDStudio (e.g. `cache/apple_...m4a`) are rewritten to absolute URLs targeting the site origin (`https://music.gdstudio.xyz`).
-- **Multilingual Artist Correlation**: Apple Music queries for non-Latin/CJK artist names (such as `周杰伦`) return Western/Romanized metadata (`Jay Chou`). The proxy and octo-fiesta correlate the queried artist name with the returned tracks so that artist pages, top songs, and search results display correctly.
+When using GDStudio with `GDSTUDIO__SOURCE: "apple"` (or other sources requiring request signing):
+- **Generic Request Signing**: Sources that are not in GDStudio's public list (such as `apple`) require runtime `s=` signatures derived from the site JavaScript. The `gdstudio-proxy` plugin acts as a pure, transparent signing proxy: it appends the `s=` signature using an in-memory Jint JS engine, redirects to the site origin, and leaves response bodies and data completely untouched.
+- **Relative Download URL Resolution**: Audio URLs returned by GDStudio as relative paths (e.g. `cache/apple_...m4a`) are resolved directly against the site origin (`https://music.gdstudio.xyz`) in octo-fiesta's `GDStudioDownloadService`.
+- **Multilingual Artist Correlation**: Apple Music queries for non-Latin/CJK artist names (such as `周杰伦`) return Western/Romanized metadata (`Jay Chou`). Octo-fiesta's `GDStudioMetadataService` handles this by preserving the queried artist name on returned tracks, ensuring artist pages, top songs, and client search filters function seamlessly.
 
 See the [upstream `.env.example`](https://github.com/filipton/octo-fiesta/blob/dev/.env.example)
 for the full list of provider settings (`Deezer__*`, `Qobuz__*`, `Tidal__*`, `Yandex__*`,
