@@ -1,0 +1,97 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | feishin | Defaults                         #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+# Upstream Source: https://github.com/jeffvli/feishin                            #
+##################################################################################
+
+################################
+# Basics
+################################
+feishin_name: feishin
+
+################################
+# Paths
+################################
+# Stateless container; nothing to persist.
+feishin_role_paths_folder: "{{ feishin_name }}"
+feishin_role_paths_location: "{{ server_appdata_path }}/{{ feishin_role_paths_folder }}"
+feishin_role_paths_folders_list: []
+
+################################
+# Web
+################################
+feishin_role_web_subdomain: "{{ feishin_name }}"
+feishin_role_web_domain: "{{ user.domain }}"
+feishin_role_web_port: "9180"
+feishin_role_web_url: "{{ 'https://' + (lookup('role_var', '_web_subdomain', role='feishin') + '.' + lookup('role_var', '_web_domain', role='feishin') if (lookup('role_var', '_web_subdomain', role='feishin') | length > 0) else lookup('role_var', '_web_domain', role='feishin')) }}"
+
+################################
+# DNS
+################################
+feishin_role_dns_record: "{{ lookup('role_var', '_web_subdomain', role='feishin') }}"
+feishin_role_dns_zone: "{{ lookup('role_var', '_web_domain', role='feishin') }}"
+feishin_role_dns_proxy: "{{ dns_proxied }}"
+
+################################
+# Traefik (Reverse Proxy & Auth)
+################################
+# feishin_role_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+feishin_role_traefik_sso_middleware: ""
+feishin_role_traefik_middleware_default: "{{ traefik_default_middleware }}"
+feishin_role_traefik_middleware_custom: ""
+feishin_role_traefik_certresolver: "{{ traefik_default_certresolver }}"
+feishin_role_traefik_enabled: true
+feishin_role_traefik_api_enabled: false
+feishin_role_traefik_api_endpoint: ""
+
+################################
+# Docker
+################################
+feishin_role_docker_container: "{{ feishin_name }}"
+
+# Image
+feishin_role_docker_image_pull: true
+feishin_role_docker_image_repo: "ghcr.io/jeffvli/feishin"
+feishin_role_docker_image_tag: "latest"
+feishin_role_docker_image: "{{ lookup('role_var', '_docker_image_repo', role='feishin') }}:{{ lookup('role_var', '_docker_image_tag', role='feishin') }}"
+
+# Envs
+feishin_role_docker_envs_default:
+  TZ: "{{ tz }}"
+  PORT: "{{ feishin_role_web_port }}"
+feishin_role_docker_envs_custom: {}
+feishin_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='feishin') | combine(lookup('role_var', '_docker_envs_custom', role='feishin')) }}"
+
+# Auto-login (optional). Feishin has no env var for default Subsonic credentials, so after the
+# container starts the role docker-execs an autologin.js into nginx's html dir and links it from
+# index.html; it seeds the browser's saved-server list so the login form is skipped.
+# Anyone who can load the page can read the token (salted MD5 of the password, standard Subsonic
+# scheme) - keep Authelia SSO on and use a dedicated low-privilege user.
+# Leave username/password empty to disable.
+feishin_role_autologin_username: ""
+feishin_role_autologin_password: ""
+feishin_role_autologin_url: "{{ lookup('role_var', '_docker_envs', role='feishin').SERVER_URL | default('') }}"
+feishin_role_autologin_enabled: "{{ (lookup('role_var', '_autologin_username', role='feishin') | length > 0) and (lookup('role_var', '_autologin_password', role='feishin') | length > 0) }}"
+
+# Volumes
+feishin_role_docker_volumes_default: []
+feishin_role_docker_volumes_custom: []
+feishin_role_docker_volumes: "{{ lookup('role_var', '_docker_volumes_default', role='feishin') + lookup('role_var', '_docker_volumes_custom', role='feishin') }}"
+
+# Ports
+feishin_role_docker_ports_defaults: []
+feishin_role_docker_ports_custom: []
+feishin_role_docker_ports: "{{ lookup('role_var', '_docker_ports_defaults', role='feishin') + lookup('role_var', '_docker_ports_custom', role='feishin') }}"
+
+# Network & Hostname
+feishin_role_docker_hostname: "{{ feishin_name }}"
+feishin_role_docker_networks_alias: "{{ feishin_name }}"
+feishin_role_docker_networks_default: []
+feishin_role_docker_networks_custom: []
+feishin_role_docker_networks: "{{ docker_networks_common + lookup('role_var', '_docker_networks_default', role='feishin') + lookup('role_var', '_docker_networks_custom', role='feishin') }}"
+
+# Operations
+feishin_role_docker_restart_policy: unless-stopped
+feishin_role_docker_state: started

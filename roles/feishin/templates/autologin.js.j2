@@ -1,0 +1,23 @@
+(function () {
+  try {
+    var k = "store_authentication";
+    var cur = JSON.parse(localStorage.getItem(k) || "null");
+    if (cur && cur.state && cur.state.currentServer) return;
+    var s = {
+      credential: {{ feishin_autologin_credential | to_json }},
+      id: "autologin",
+      isAdmin: false,
+      name: {{ (lookup('role_var', '_docker_envs').SERVER_NAME | default('feishin')) | to_json }},
+      savePassword: false,
+      type: "subsonic",
+      url: {{ lookup('role_var', '_autologin_url') | to_json }},
+      userId: null,
+      username: {{ lookup('role_var', '_autologin_username') | to_json }}
+    };
+    var st = (cur && cur.state) || { deviceId: Math.random().toString(36).slice(2, 12), serverList: {} };
+    st.serverList = st.serverList || {};
+    st.serverList[s.id] = s;
+    st.currentServer = s;
+    localStorage.setItem(k, JSON.stringify({ state: st, version: 2 }));
+  } catch (e) {}
+})();

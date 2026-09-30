@@ -1,0 +1,41 @@
+---
+##################################################################################
+# Title:         Saltbox Mod: Roles | feishin | Tasks                            #
+# Author(s):     hereisderek                                                     #
+# URL:           https://github.com/hereisderek/saltbox_mod                      #
+##################################################################################
+
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('role_var', '_dns_record') }}"
+    dns_zone: "{{ lookup('role_var', '_dns_zone') }}"
+    dns_proxy: "{{ lookup('role_var', '_dns_proxy') }}"
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Debug Docker container creation
+  ansible.builtin.include_tasks: "{{ mod_resources_tasks_path }}/docker/debug_docker_create_container.yml"
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"
+
+- name: Inject autologin script into Feishin
+  when: lookup('role_var', '_autologin_enabled') | bool
+  no_log: true
+  block:
+    - name: Write autologin.js into the container
+      ansible.builtin.command: docker exec -u root -i {{ lookup('role_var', '_docker_container') }} sh -c 'cat > /usr/share/nginx/html/autologin.js'
+      args:
+        stdin: "{{ lookup('template', 'autologin.js.j2') }}"
+      vars:
+        feishin_autologin_credential: "u={{ lookup('role_var', '_autologin_username') | urlencode }}&s=feishin&t={{ (lookup('role_var', '_autologin_password') ~ 'feishin') | hash('md5') }}"
+      changed_when: true
+
+    - name: Link autologin.js from index.html
+      ansible.builtin.command: >-
+        docker exec -u root {{ lookup('role_var', '_docker_container') }} sh -c
+        'grep -q autologin.js /usr/share/nginx/html/index.html ||
+        sed -i "s|<script src=\"settings.js\"></script>|&<script src=\"autologin.js\"></script>|" /usr/share/nginx/html/index.html'
+      changed_when: true

@@ -36,3 +36,4 @@
     - { role: qbittorrent, tags: ['qbittorrent', 'mod-qbittorrent'] }
     - { role: ai_quota_dashboard, tags: ['ai-quota-dashboard'] }
     - { role: octo_fiesta, tags: ['octo-fiesta'] }
+    - { role: feishin, tags: ['feishin'] }
