@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
-# Compiles the plugin into ./dist. Copy the three files from there into the config folder:
-#   gdstudio-proxy.dll, Jint.dll, Acornima.dll
+# Compiles the plugin into ./dist as a single merged DLL: gdstudio-proxy.dll (merging Jint and Acornima via ILRepack)
 set -e
 cd "$(dirname "$0")"
 rm -rf dist

@@ -44,7 +44,7 @@
     mode: "0755" 
   ignore_errors: true
 
-- name: Copy plugin DLLs to octo-fiesta appdata directory
+- name: Copy plugin DLL to octo-fiesta appdata directory
   ansible.builtin.copy:
     src: "{{ role_path }}/files/gdstudio-proxy-apple/dist/{{ item }}"
     dest: "{{ lookup('role_var', '_paths_location', role='octo_fiesta') }}/gdstudio/{{ item }}"
@@ -52,8 +52,6 @@
     group: "{{ gid | default(1000) }}"
     mode: "0644"
   loop:
-    - Acornima.dll
-    - Jint.dll
     - gdstudio-proxy.dll
   failed_when: false
   ignore_errors: true

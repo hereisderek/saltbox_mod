@@ -10,10 +10,29 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.48">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Jint" Version="4.*" />
     <!-- provided by the host, must not be copied next to the plugin -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.*" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.*" ExcludeAssets="runtime" />
   </ItemGroup>
+
+  <Target Name="MergePublishArtifacts" AfterTargets="Publish">
+    <ItemGroup>
+      <MergeAssemblies Include="$(PublishDir)gdstudio-proxy.dll" />
+      <MergeAssemblies Include="$(PublishDir)Jint.dll" />
+      <MergeAssemblies Include="$(PublishDir)Acornima.dll" />
+    </ItemGroup>
+    <ILRepack
+        Parallel="true"
+        InputAssemblies="@(MergeAssemblies)"
+        TargetKind="Dll"
+        OutputFile="$(PublishDir)gdstudio-proxy.dll"
+    />
+    <Delete Files="$(PublishDir)Jint.dll;$(PublishDir)Acornima.dll;$(PublishDir)Jint.pdb;$(PublishDir)Acornima.pdb" />
+  </Target>
 
 </Project>
