@@ -9,7 +9,7 @@
 ################################
 # Basics
 ################################
-alacarte_apple_music_name: alacarte-apple-music
+alacarte_apple_music_name: alacarte
 
 ################################
 # Paths
@@ -21,6 +21,7 @@ alacarte_apple_music_role_paths_folders_list:
   - "{{ alacarte_apple_music_role_paths_location }}/data"
   - "{{ alacarte_apple_music_role_paths_location }}/data/web"
   - "{{ alacarte_apple_music_role_paths_location }}/data/wrapper"
+  - "{{ alacarte_apple_music_role_paths_location }}/data/importer"
   - "{{ alacarte_apple_music_role_paths_location }}/music"
 alacarte_apple_music_role_paths_recursive: true
 
@@ -95,6 +96,18 @@ alacarte_apple_music_role_docker_image: "{{ lookup('role_var', '_docker_image_re
 # Init & Process Handling
 alacarte_apple_music_role_docker_init: true
 
+################################
+# IPv6 Settings
+################################
+# Global Saltbox network IPv6 flag (defaults to false if absent)
+docker_ipv6: "{{ saltbox_network_ipv6 if (saltbox_network_ipv6 is defined) else false }}"
+
+# Role-specific IPv6 flag (defaults to false if absent)
+alacarte_apple_music_role_ipv6_enabled: false
+
+# Dynamic role IPv6 environment variables
+alacarte_apple_music_role_ipv6_envs: "{{ {'NODE_OPTIONS': '--dns-result-order=ipv6first'} if (lookup('role_var', '_ipv6_enabled', role='alacarte_apple_music', default=false) | bool) else {} }}"
+
 # Envs
 alacarte_apple_music_role_docker_envs_default:
   PUID: "{{ uid }}"
@@ -113,7 +126,7 @@ alacarte_apple_music_role_docker_envs_default:
   TRUST_PROXY: "loopback"
   INTERNAL_API_KEY: "{{ lookup('role_var', '_internal_api_key', role='alacarte_apple_music') }}"
 alacarte_apple_music_role_docker_envs_custom: {}
-alacarte_apple_music_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='alacarte_apple_music') | combine(lookup('role_var', '_docker_envs_custom', role='alacarte_apple_music')) }}"
+alacarte_apple_music_role_docker_envs: "{{ lookup('role_var', '_docker_envs_default', role='alacarte_apple_music') | combine(lookup('role_var', '_ipv6_envs', role='alacarte_apple_music', default={})) | combine(lookup('role_var', '_docker_envs_custom', role='alacarte_apple_music')) }}"
 
 # Volumes (Keep generic! User maps /mnt/... in localhost.yml)
 alacarte_apple_music_role_docker_volumes_default:
@@ -174,12 +187,15 @@ alacarte_apple_music_role_importer_envs_default:
   AUTH_ENABLED: "{{ lookup('role_var', '_importer_auth_enabled', role='alacarte_apple_music') | string | lower }}"
   TRUST_PROXY: "loopback"
   IMPORTER_USER_AGENT: ""
+  IMPORTER_CONFIG_FILE: "/data/importer-config.json"
+  IMPORTER_CONFIG_LOCKED: "false"
 alacarte_apple_music_role_importer_envs_custom: {}
 alacarte_apple_music_role_importer_docker_envs_custom: {}
-alacarte_apple_music_role_importer_envs: "{{ lookup('role_var', '_importer_envs_default', role='alacarte_apple_music') | combine(lookup('role_var', '_importer_envs_custom', role='alacarte_apple_music')) | combine(lookup('role_var', '_importer_docker_envs_custom', role='alacarte_apple_music')) }}"
+alacarte_apple_music_role_importer_envs: "{{ lookup('role_var', '_importer_envs_default', role='alacarte_apple_music') | combine(lookup('role_var', '_ipv6_envs', role='alacarte_apple_music', default={})) | combine(lookup('role_var', '_importer_envs_custom', role='alacarte_apple_music')) | combine(lookup('role_var', '_importer_docker_envs_custom', role='alacarte_apple_music')) }}"
 
 # Importer Volumes (Optional overrides)
-alacarte_apple_music_role_importer_volumes_default: []
+alacarte_apple_music_role_importer_volumes_default:
+  - "{{ alacarte_apple_music_role_paths_location }}/data/importer:/data"
 alacarte_apple_music_role_importer_volumes_custom: []
 alacarte_apple_music_role_importer_volumes: "{{ lookup('role_var', '_importer_volumes_default', role='alacarte_apple_music') + lookup('role_var', '_importer_volumes_custom', role='alacarte_apple_music') }}"
 

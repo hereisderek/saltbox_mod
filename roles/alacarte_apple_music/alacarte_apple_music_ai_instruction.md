@@ -31,6 +31,12 @@ Managed as a **single unified Saltbox service** orchestrating three collaboratin
 - **Unblocked Internal Inter-Container Communication**:
   - `importer` communicates directly with `web` over the private Docker network (`http://alacarte-apple-music:7373`) using `INTERNAL_API_KEY` header `x-internal-key`, bypassing Traefik/Authelia.
   - `web` communicates directly with `wrapper` over the private Docker network (`http://alacarte-apple-music-wrapper:40020`).
+- **Apple API 429 & IPv6 Flags (Both Default to `false`)**:
+  - Apple's edge CDN aggressively blocks/rate-limits residential IPv4 blocks (`42900 Request is forbidden`).
+  - Two distinct flags are supported in `localhost.yml` (both default to `false` if absent):
+    1. Global `docker_ipv6: false`: controls IPv6 enablement on the `saltbox` Docker network bridge.
+    2. Role-specific `alacarte_apple_music_role_ipv6_enabled: false`: when set to `true`, injects `NODE_OPTIONS: "--dns-result-order=ipv6first"` into `web` and `importer` containers to prioritize IPv6 for Apple API requests.
+    3. If role IPv6 is enabled while `saltbox` network lacks IPv6, Ansible emits a warning to enable `docker_ipv6: true`.
 - **Custom Overrides**:
   - Override parser user agents (`IMPORTER_USER_AGENT`, `SPOTIFY_USER_AGENT`, `KKBOX_USER_AGENT`, etc.) and search pacing via `alacarte_apple_music_role_importer_envs_custom` in `localhost.yml`.
   - Sample disabled Traefik dynamic file config available at `/opt/traefik/alacarte-apple-music.yml.bak`.

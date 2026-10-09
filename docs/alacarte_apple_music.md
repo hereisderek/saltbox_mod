@@ -90,6 +90,10 @@ alacarte_apple_music_role_docker_envs_custom:
   AUTH_DISABLED: "true" # Bypass secondary web password behind Authelia
   AMDL_MUSIC_PATH: "/music"
 
+# Enable IPv6 for this role (defaults to false if absent)
+# Injects NODE_OPTIONS="--dns-result-order=ipv6first" to prioritize IPv6 and bypass Apple CDN 429
+alacarte_apple_music_role_ipv6_enabled: true
+
 # Enable importer container (default is false)
 alacarte_apple_music_role_importer_enabled: true
 
@@ -173,4 +177,58 @@ docker logs -f alacarte-apple-music-importer
 
 # Verify container status
 docker ps --filter "name=alacarte-apple-music"
+```
+
+---
+
+## 6. Apple API 429 Rate Limiting & IPv6 Flags
+
+### Symptoms & Root Cause
+When searching the catalog or running batch imports, ALACarte may report errors such as:
+```json
+Apple API 429 on /v1/catalog/{storefront}/search: {"errors":[{"id":"...","title":"Too Many Requests","detail":"Request is forbidden","status":"429","code":"42900"}]}
+```
+or HTTP 502 Bad Gateway responses in the web UI.
+
+- **Edge CDN Blocking**: Apple's edge CDN (`server: daiquiri/5`) aggressively rate-limits or blocks entire residential IPv4 ranges (such as ISP CGNAT pools). Even if an instance has not been used for days, requests over IPv4 are forbidden immediately.
+- **Clean IPv6 Stack**: On residential dual-stack connections, the public IPv6 prefix is typically clean and unblocked, allowing requests to return `HTTP 200 OK` reliably.
+- **Node.js DNS Behavior**: Modern Node.js (v17+) uses `verbatim` DNS resolution order by default, prioritizing IPv4 (`A` records) before IPv6 (`AAAA` records). When Apple's edge returns 429 on IPv4, Node aborts immediately instead of attempting IPv6.
+
+### Two-Tier IPv6 Flags (Both Default to `false` if Absent)
+
+To manage IPv6 cleanly without unwanted side effects across the system, IPv6 is controlled by two distinct flags configured in `/srv/git/saltbox/inventories/host_vars/localhost.yml`:
+
+#### 1. Global Flag (`docker_ipv6`)
+Enables IPv6 on the internal Saltbox Docker network (`saltbox`), creating the `fd00:dead:beef::/48` subnet and IPv6 gateway.
+- **Default (if absent)**: `false`
+- **Configurable in `localhost.yml`**:
+  ```yaml
+  ### Global Settings
+  docker_ipv6: true # or false (default if absent: false)
+  ```
+- **Application**: Changing this global flag configures the Docker daemon and network. Run `sb install docker` after changing this flag to migrate or update the `saltbox` network.
+
+#### 2. Role-Specific Flag (`alacarte_apple_music_role_ipv6_enabled`)
+Controls whether the ALACarte service specifically prioritizes IPv6 for outbound requests.
+- **Default (if absent)**: `false`
+- **Configurable in `localhost.yml`**:
+  ```yaml
+  ### alacarte_apple_music
+  alacarte_apple_music_role_ipv6_enabled: true # (default if absent: false)
+  ```
+- **Behavior when `true`**: Automatically injects `NODE_OPTIONS: "--dns-result-order=ipv6first"` into both the web container (`alacarte-apple-music`) and the importer container (`alacarte-apple-music-importer`).
+- **Behavior when `false`**: Normal IPv4 default behavior; no extra Node flags are injected.
+- **Safety check**: If `alacarte_apple_music_role_ipv6_enabled: true` is set while the `saltbox` network lacks IPv6 (`docker_ipv6: false`), the role displays an explicit Ansible warning reminding you to enable `docker_ipv6: true`.
+
+### Scope & Multi-Container Isolation
+- Setting `alacarte_apple_music_role_ipv6_enabled: true` only affects Node.js runtimes within the ALACarte containers.
+- Other Saltbox containers (such as qBittorrent behind Gluetun, Sonarr, Radarr, and Emby) remain on standard IPv4 routing without side effects or VPN leaks.
+
+### Verification Commands
+```bash
+# Verify NODE_OPTIONS is active on the container:
+docker inspect alacarte-apple-music --format '{{range .Config.Env}}{{println .}}{{end}}' | grep NODE_OPTIONS
+
+# Test live search directly inside the container:
+docker exec alacarte-apple-music curl -s -i 'http://127.0.0.1:7373/api/search?q=coldplay'
 ```

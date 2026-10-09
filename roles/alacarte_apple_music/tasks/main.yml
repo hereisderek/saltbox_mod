@@ -29,6 +29,23 @@
 - name: Create directories
   ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
 
+- name: Check saltbox docker network IPv6 status
+  community.docker.docker_network_info:
+    name: "{{ docker_networks_name_common }}"
+  register: _saltbox_network_status
+  ignore_errors: true
+
+- name: Warn if role IPv6 is enabled but saltbox network lacks IPv6
+  ansible.builtin.debug:
+    msg: >-
+      [WARNING] {{ lookup('role_var', '_docker_container', role='alacarte_apple_music') }}:
+      alacarte_apple_music_role_ipv6_enabled is true, but the '{{ docker_networks_name_common }}' network does not have IPv6 enabled.
+      Set 'docker_ipv6: true' in localhost.yml and run 'sb install docker' to enable IPv6 on the saltbox network.
+  when:
+    - lookup('role_var', '_ipv6_enabled', role='alacarte_apple_music', default=false) | bool
+    - _saltbox_network_status.exists | default(false)
+    - not (_saltbox_network_status.network.EnableIPv6 | default(false))
+
 - name: Create wrapper Docker container
   community.docker.docker_container:
     name: "{{ lookup('role_var', '_wrapper_container', role='alacarte_apple_music') }}"
