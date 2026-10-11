@@ -29,11 +29,6 @@ ytdl_sub_role_paths_location: "{{ server_appdata_path }}/{{ ytdl_sub_role_paths_
 ytdl_sub_role_download_folder: "/mnt/unionfs/Media/Youtube/{{ ytdl_sub_name }}"
 ytdl_sub_role_paths_folders_list_default:
   - "{{ lookup('role_var', '_paths_location', role='ytdl_sub') }}"
-  - "{{ lookup('role_var', '_download_folder', role='ytdl_sub') }}"
-  - "{{ lookup('role_var', '_download_folder', role='ytdl_sub') }}/tv_shows"
-  - "{{ lookup('role_var', '_download_folder', role='ytdl_sub') }}/movies"
-  - "{{ lookup('role_var', '_download_folder', role='ytdl_sub') }}/music_videos"
-  - "{{ lookup('role_var', '_download_folder', role='ytdl_sub') }}/music"
 ytdl_sub_role_paths_folders_list_custom: []
 ytdl_sub_role_paths_folders_list: "{{ lookup('role_var', '_paths_folders_list_default', role='ytdl_sub')
                                     + lookup('role_var', '_paths_folders_list_custom', role='ytdl_sub') }}"

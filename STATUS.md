@@ -7,6 +7,11 @@
 
 ## Resolved
 
+### 2026-10-11 — Paperless-ngx missing documents restored & legacy folder purged
+- Restored 136 original documents, 129 archive PDFs, and 136 thumbnails from `/media/data/app/paperless_ngx/media/documents/` into the active `/media/data/app/paperless/media/documents/` directory via `rsync -av --ignore-existing`.
+- Restored trash folder. Verified with `docker exec paperless python3 manage.py document_sanity_checker` (`138/? 0:00:00 No issues detected`).
+- Purged obsolete `/media/data/app/paperless_ngx` directory on `saltbox.local`.
+
 ### 2026-09-22 — qbittorrent_mod role rewritten from scratch
 
 Context: the user backed up and deleted both `/opt/qbittorrent` (upstream) and `/opt/qbittorrent_mod` (this repo's instance) on the server, then asked for the mod role to be redone: import upstream's tasks directly (minimize drift), support both the default and hotio Docker images with correct mount handling, keep host folder structure stable under `/opt/qbittorrent_mod`, support multiple instances, and make sure the reverse-proxy auth-bypass whitelist actually works.

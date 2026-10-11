@@ -11,14 +11,14 @@
 # Basics
 ################################
 
-calibre_web_automated_downloader_name: calibre_web_automated_downloader
+calibre_web_automated_downloader_name: calibre-web-automated-downloader
 
 ################################
 # Settings
 ################################
 
 calibre_web_automated_downloader_role_book_language: "en"
-calibre_web_automated_downloader_role_cwa_db_path: "{{ lookup('role_var', '_paths_location', role='calibre_web_automated', default=(server_appdata_path + '/calibre_web_automated')) }}/config/app.db"
+calibre_web_automated_downloader_role_cwa_db_path: "{{ lookup('role_var', '_paths_location', role='calibre_web_automated', default=(server_appdata_path + '/calibre-web-automated')) }}/config/app.db"
 calibre_web_automated_downloader_role_ingest_path: "{{ lookup('role_var', '_ingest_path', role='calibre_web_automated', default='/mnt/unionfs/Media/Books/ingest') }}"
 
 ################################

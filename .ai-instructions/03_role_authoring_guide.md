@@ -218,3 +218,28 @@ fatal: [localhost]: FAILED! => {"attempts": 2, "changed": false, "msg": "The mou
 - Keep `_docker_volumes_default` strictly minimal (usually only the `/config` or `/data` directory).
 - **Never** add default volume mounts for media libraries, log folders, or cache directories in `defaults/main.yml`. Let the administrator map them via `_docker_volumes_custom` in `localhost.yml`.
 
+---
+
+## 7. Naming Conventions Standard: Underscores (`_`) vs. Hyphens (`-`)
+
+To avoid path drift, split data directories, and orphaned duplicate containers, adhere strictly to the following cross-layer standard:
+
+| Layer | Standard | Example | Rule / Reason |
+|---|---|---|---|
+| **Ansible Role Directory** | `snake_case` | `roles/alacarte_apple_music/` | All roles in `/srv/git/saltbox/roles` and `/opt/sandbox/roles` use `snake_case`. |
+| **Ansible Variables** | `snake_case` | `<role_name>_role_*` | **Mandatory** in Jinja. Hyphens (`-`) are subtraction operators and cause syntax errors. |
+| **Playbook Tag** | `kebab-case` | `tags: ['alacarte-apple-music']` | Matched when invoking `sb install mod-<tag>`. |
+| **App Name (`<role>_name`)** | `kebab-case` | `<role_name>_name: "my-app"` | **RFC 1123 DNS Compliance**: Used for Traefik subdomains (`my-app.hereisderek.dpdns.org`) and container names. Underscores are illegal in hostnames. |
+| **Container Name** | `kebab-case` | `{{ <role_name>_name }}` | Defaults to `<role_name>_name`. |
+| **AppData Path** | `kebab-case` | `/opt/{{ <role_name>_name }}` | `server_appdata_path` roots to the kebab-case app name. |
+
+### Dynamic Path Helpers Gotcha (`app_data_dir`, `app_cache_dir`, etc.)
+In `localhost.yml`, Saltbox evaluates:
+```yaml
+app_name: "{{ traefik_role_var | default(role_name) }}"
+app_data_dir: "{{ root_data_dir }}/app/{{ app_name }}"
+```
+1. `traefik_role_var` resolves to `{{ <role_name>_name }}`.
+2. Therefore, `app_data_dir` resolves to `/media/data/app/{{ <role_name>_name }}` (e.g., `/media/data/app/paperless`).
+3. **Renaming Warning**: If `<role_name>_name` is changed across revisions (e.g. from `my_app` to `my-app`), Ansible's `remove_docker_container.yml` will only remove the new name, leaving the old container running and creating a split directory with orphaned data. Always manually prune the previous container when changing `<role_name>_name`.
+

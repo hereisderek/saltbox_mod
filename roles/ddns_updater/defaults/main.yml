@@ -12,7 +12,7 @@
 # Basics
 ################################
 
-ddns_updater_name: ddns_updater
+ddns_updater_name: ddns-updater
 
 ################################
 # Paths

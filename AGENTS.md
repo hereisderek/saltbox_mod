@@ -148,12 +148,30 @@ All custom variable overrides belong in:
 └── <role_name>_ai_instruction.md       # Quick AI instruction note
 ```
 
-### B. Conventions & Naming Rules
-- Use `snake_case` for role directories, Ansible role names, and variable prefixes.
-- Use lowercase `kebab-case` for literal Ansible tags in `saltbox_mod.yml`.
-- Check both Saltbox and Sandbox to prevent role or tag collisions.
-- Every `lookup('role_var', ...)` in defaults must specify an explicit `role='<role_name>'` target.
-- In assertions, prefer boolean Jinja tests (`is search(...)`, `is match(...)`) over filters that return strings or `none`.
+### B. Conventions & Naming Rules (Underscores `_` vs. Hyphens `-`)
+Follow the strict architectural separation across Ansible, Docker, and DNS layers:
+1. **Ansible Role Directory & Names (`snake_case`)**:
+   - Role directory: `roles/<role_name>/` must use `snake_case` (e.g., `alacarte_apple_music`, `code_server`, `ytdl_sub`).
+   - Ansible role entry in `saltbox_mod.yml`: `- { role: <role_name>, tags: ['<app-name>'] }`.
+2. **Ansible Variable Prefixes (`snake_case`)**:
+   - All variable prefixes **MUST** use `snake_case` (e.g., `<role_name>_role_*`).
+   - *Reason*: Jinja treats `-` as a subtraction operator; hyphens in variable names trigger syntax errors.
+3. **Playbook Tags & CLI Invocation (`kebab-case`)**:
+   - Use lowercase `kebab-case` for literal Ansible tags in `saltbox_mod.yml` (e.g., `tags: ['my-app']` invoked via `sb install mod-my-app`).
+4. **Application / Container Name (`<role_name>_name`: `kebab-case`)**:
+   - Set `<role_name>_name` in `defaults/main.yml` using `kebab-case` (e.g., `<role_name>_name: my-app`).
+   - Container name, network alias, and Traefik subdomain default to `{{ <role_name>_name }}`.
+   - *Reason*: **RFC 1123 DNS compliance** strictly forbids underscores `_` in domain hostnames and subdomains (`my-app.hereisderek.dpdns.org`).
+5. **Path Resolution & Helper Variables (`app_data_dir`, `app_cache_dir`, etc.)**:
+   - Saltbox resolves `app_name: "{{ traefik_role_var | default(role_name) }}"`, where `traefik_role_var` evaluates to `{{ <role_name>_name }}`.
+   - When referencing `{{ app_data_dir }}` (`/media/data/app/{{ app_name }}`), the folder will be named after `<role_name>_name` (kebab-case).
+   - > [!WARNING]
+     > **Preventing Split Directories & Zombie Containers**:
+     > Never change `<role_name>_name` between underscores and hyphens across revisions without explicitly removing the old container and migrating data. Docker container removal tasks (`remove_docker_container.yml`) only stop the container matching the current `<role_name>_name`, leaving the old container running and orphaning the previous data path.
+6. **Lookup Standards**:
+   - Every `lookup('role_var', ...)` in defaults must specify an explicit `role='<role_name>'` target.
+7. **Jinja Assertions**:
+   - Prefer boolean Jinja tests (`is search(...)`, `is match(...)`) over filters that return strings or `none`.
 
 ### C. Generic Blueprint for `defaults/main.yml`
 ```yaml

@@ -104,7 +104,7 @@ shared_metadata_dir: "{{ metadata_dir }}/shared"
 ```
 
 ### Specific Host Storage Assignments
-- **Paperless-ngx**: Persistent database and document archive stored on high-speed NVMe: `paperless_ngx_role_paths_location: "{{ app_data_dir }}"` (`/media/data/app/paperless_ngx`).
+- **Paperless-ngx**: Persistent database and document archive stored on high-speed NVMe: `paperless_ngx_role_paths_location: "{{ app_data_dir }}"` (`/media/data/app/paperless` since `paperless_ngx_name: paperless`).
 - **Nextcloud**: Data files stored on dedicated SSD backup storage: `nextcloud_role_file_location: "{{ ssd_root_backup_dir }}/nextcloud"` (`/mnt/backups/ssd-data/nextcloud`).
 - **Duplicati**: Backs up read-only `/srv` and `/opt` into `{{ root_backup_dir }}/duplicati` (`/mnt/remote/media/Backups/duplicati`).
 - **Note on `log_path`**: Ansible global log cannot be placed on certain FUSE/network mounts; `localhost.yml` keeps `# log_path: "/media/cache/saltbox.log"` commented out, leaving logging to `./saltbox_mod.log` as defined in `ansible.cfg`.

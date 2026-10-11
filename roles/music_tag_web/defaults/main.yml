@@ -2,12 +2,12 @@
 ################################
 # Basics
 ################################
-music_tag_web_name: music_tag_web
+music_tag_web_name: music-tag-web
 
 ################################
 # Paths
 ################################
-music_tag_web_role_paths_folder: "music-tag-web"
+music_tag_web_role_paths_folder: "{{ music_tag_web_name }}"
 music_tag_web_role_paths_location: "{{ server_appdata_path }}/{{ music_tag_web_role_paths_folder }}"
 music_tag_web_role_paths_folders_list:
   - "{{ music_tag_web_role_paths_location }}"
@@ -42,7 +42,7 @@ music_tag_web_role_traefik_api_endpoint: ""
 ################################
 # Docker
 ################################
-music_tag_web_role_docker_container: "music-tag-web"
+music_tag_web_role_docker_container: "{{ music_tag_web_name }}"
 
 # Image
 music_tag_web_role_docker_image_pull: true

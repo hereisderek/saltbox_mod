@@ -18,7 +18,7 @@
 
     - { role: calibre_web_automated, tags: ['calibre-web-automated'] }
     - { role: calibre_web_automated_downloader, tags: ['calibre-web-automated-downloader'] }
-    - { role: ddns_updater, tags: ['ddns_updater'] }
+    - { role: ddns_updater, tags: ['ddns-updater', 'ddns_updater'] }
     - { role: duplicati, tags: ['duplicati'] }
     - { role: metube, tags: ['metube'] }
     - { role: restreamer, tags: ['restreamer'] }
@@ -29,11 +29,11 @@
     - { role: ytdl_sub, tags: ['ytdl-sub'] }
     - { role: music_tag_web, tags: ['music-tag-web'] }
     - { role: dockge, tags: ['dockge'] }
-    - { role: simple_sq_music_plus, tags: ['simple_sq_music_plus'] }
+    - { role: simple_sq_music_plus, tags: ['simple-sq-music-plus', 'simple_sq_music_plus'] }
     - { role: lxserver, tags: ['lxserver'] }
     - { role: solara, tags: ['solara'] }
     - { role: alacarte_apple_music, tags: ['alacarte-apple-music'] }
     - { role: qbittorrent, tags: ['qbittorrent', 'mod-qbittorrent'] }
-    - { role: ai_quota_dashboard, tags: ['ai-quota-dashboard'] }
+    # - { role: ai_quota_dashboard, tags: ['ai-quota-dashboard'] } # Abandoned
     - { role: octo_fiesta, tags: ['octo-fiesta'] }
     - { role: feishin, tags: ['feishin'] }
