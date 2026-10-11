@@ -53,7 +53,7 @@
     pull: "{{ lookup('role_var', '_docker_image_pull', role='alacarte_apple_music') | bool }}"
     platform: linux/amd64
     state: started
-    restart_policy: on-failure
+    restart_policy: unless-stopped
     network_mode: "{{ docker_networks_name_common }}"
     networks:
       - name: "{{ docker_networks_name_common }}"
